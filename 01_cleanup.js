@@ -81,23 +81,35 @@ LICENSE file in the root directory of this source tree.
                         }
 
                         if (c > 0) {
-                            var k = 0;
+                            var num = newSegs.length;
 
-                            while (k < newSegs.length
-                                && (isArcShape(newSegs[0]) || isArcShape(newSegs[newSegs.length-1]))) {
+                            for (var k = 0; k < num; k++) {
+                                var shA = newSegs[k],
+                                    shB = newSegs[(k+1)%num];
 
-                                newSegs.push(newSegs.shift());
+                                if (isArcShape(shA) && isArcShape(shB)) {
+                                    // nix
+                                } else if (isArcShape(shA) && isLineShape(shB)) {
+                                    if (shB.getStartPoint().equalsFuzzy(shA.getEndPoint(), 1e-5)) {
+                                        shB.setStartPoint(shA.getEndPoint());
+                                    }
+                                } else {
+                                    if (shA.getEndPoint().equalsFuzzy(shB.getStartPoint(), 1e-5)) {
+                                        shA.setEndPoint(shB.getStartPoint());
+                                    }
+                                }
 
-                                k++;
                             }
 
                             var pl = new RPolyline();
 
-                            for (var k = 0; k < newSegs.length; k++) {
+                            for (var k = 0; k < num; k++) {
                                 pl.appendShapeAuto(newSegs[k]);
                             }
 
-                            pl.convertToClosed();
+                            if (pl.isGeometricallyClosed(1e-5)) {
+                                pl.convertToClosed();
+                            }
 
                             itm.setShape(pl);
                         }

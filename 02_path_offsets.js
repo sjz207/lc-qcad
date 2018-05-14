@@ -74,12 +74,42 @@ LICENSE file in the root directory of this source tree.
 
             var offs = [];
 
+            /*
             for (var j = 0; j < filtered.length; j++) {
                 var worker = new RPolygonOffset(.15/2, 1, RVector.invalid, RS.JoinMiter, false);
                 worker.setForceSide(RS.RightHand);
                 worker.addPolyline(filtered[j].castToShape());
 
                 Array.prototype.push.apply(offs, worker.getOffsetShapes());
+            }
+            */
+
+            // mit workaround
+
+            for (var j = 0; j < filtered.length; j++) {
+
+                var expl = filtered[j].getExploded();
+
+                for (var k = 0; k < expl.length; k++) {
+                    var newPl = new RPolyline(expl);
+                    newPl.convertToClosed();
+
+                    var worker = new RPolygonOffset(.15/2, 1, RVector.invalid, RS.JoinMiter, false);
+                    worker.setForceSide(RS.RightHand);
+                    worker.addPolyline(newPl);
+
+                    var res = worker.getOffsetShapes();
+
+                    if (res.length == 0) {
+                        expl.push(expl.shift());
+                    } else {
+                        Array.prototype.push.apply(offs, res);
+
+                        break;
+                    }
+
+                }
+
             }
 
             di.setCurrentLayer(offsLay.getId());
