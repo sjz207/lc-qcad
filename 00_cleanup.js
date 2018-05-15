@@ -135,4 +135,30 @@ LICENSE file in the root directory of this source tree.
         }
     }
 
+    // verschiebt die blöcke auf die 0
+
+    var op = new RModifyObjectsOperation(false);
+
+    var blocks = doc.queryAllBlockReferences();
+    for (var i = 0; i < blocks.length; i++) {
+        var ent = doc.queryEntity(blocks[i]);
+
+        ent.setLayerId(doc.getLayer0Id());
+        op.addObject(ent);
+    }
+
+    di.applyOperation(op);
+
+    // löscht leere layer
+
+    var op = new RDeleteObjectsOperation(false);
+
+    var layers = doc.queryAllLayers();
+    for (var i = 0; i < layers.length; i++) {
+        if (doc.queryLayerEntities(layers[i], true).length == 0) {
+            op.deleteObject(doc.queryLayer(layers[i]));
+        }
+    }
+    di.applyOperation(op);
+
 })();

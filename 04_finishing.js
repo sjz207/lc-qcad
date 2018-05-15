@@ -34,29 +34,14 @@ LICENSE file in the root directory of this source tree.
             op.addObject(itm, false);
         }
         di.applyOperation(op);
+
+        // löscht den block
+
+        var op2 = new RDeleteObjectsOperation(false);
+        op2.deleteObject(doc.queryBlock(b.getReferencedBlockId()));
+        di.applyOperation(op2);
+
     }
-
-    // löscht leere blöcke und layer
-    var op2 = new RDeleteObjectsOperation(false);
-
-    var blocks = doc.queryAllBlocks();
-    for (var i = 0; i < blocks.length; i++) {
-        if (!doc.hasBlockEntities(blocks[i])) {
-            op2.deleteObject(doc.queryBlock(blocks[i]));
-        }
-    }
-
-    di.applyOperation(op2);
-
-    var op2 = new RDeleteObjectsOperation(false);
-
-    var layers = doc.queryAllLayers();
-    for (var i = 0; i < layers.length; i++) {
-        if (doc.queryLayerEntities(layers[i]).length == 0) {
-            op2.deleteObject(doc.queryLayer(layers[i]));
-        }
-    }
-    di.applyOperation(op2);
 
     /*
 
