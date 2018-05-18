@@ -1,2 +1,2 @@
 #!/bin/bash
-~/go/bin/minify -o dist/lc.js 0*.js
+~/go/bin/minify --type js -o dist/lc.js < <(gawk '!/kdTree.js/' 0*.js | cat kdTree.js -)

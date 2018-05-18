@@ -492,8 +492,6 @@ function AddSideGaps (pts, infos, sides, q) {
 
                 }
 
-                di.setCurrentLayer(layC.getId());
-
                 var num = pts.length;
 
                 /*var lines = [];
@@ -538,34 +536,25 @@ function AddSideGaps (pts, infos, sides, q) {
 
                 for (var j = 0; j < newSegs.length; j++) {
                     var newEnt = shapeToEntity(doc, newSegs[j]);
-                    op.addObject(newEnt);
+                    newEnt.setLayerId(layC.getId());
+                    op.addObject(newEnt, false);
                 }
 
                 di.applyOperation(op);
 
                 // darstellung
 
-                di.setCurrentLayer(layA.getId());
+                cxEnt.setLayerId(layA.getId());
+                obbEnt.setLayerId(layB.getId());
 
                 var op2 = new RAddObjectsOperation(false);
-                op2.addObject(cxEnt);
+                op2.addObject(cxEnt, false);
+                op2.addObject(obbEnt, false);
                 di.applyOperation(op2);
-
-                di.setCurrentLayer(layB.getId());
-
-                var op3 = new RAddObjectsOperation(false);
-                op3.addObject(obbEnt);
-                di.applyOperation(op3);
-
-                // testweise
-
-                var op4 = new RDeleteObjectsOperation(false);
-                op4.deleteObject(ent);
-                di.applyOperation(op4);
 
             } else {
 
-                var op = new RModifyObjectsOperation(false);
+                var op = new RAddObjectsOperation(false);
 
                 var expl = ent.getExploded();
 
@@ -574,18 +563,17 @@ function AddSideGaps (pts, infos, sides, q) {
                     newEnt.setLayerId(layName == 'Gravur' ? layD.getId() : layC.getId());
                     op.addObject(newEnt, false);
                 }
-
-                if (layName == 'Gravur') {
-                    op.deleteObject(ent);
-                }
-
                 di.applyOperation(op);
 
             }
 
+            // testweise
+
+            var op3 = new RDeleteObjectsOperation(false);
+            op3.deleteObject(ent);
+            di.applyOperation(op3);
+
         }
     }
-
-    di.setCurrentLayer(doc.getLayer0Id());
 
 })();
