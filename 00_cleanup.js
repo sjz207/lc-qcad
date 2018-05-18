@@ -35,105 +35,14 @@ LICENSE file in the root directory of this source tree.
         itm.setColor(new RColor(RColor.ByLayer));
     }
 
-    for (var i = 0; i < entities.length; i++) {
-        var ent = doc.queryEntity(entities[i]);
 
-        if (isBlockReferenceEntity(ent)) {
-            var b = ent.getReferencedBlockId();
-            var itms = doc.queryBlockEntities(b);
+    var hatches = doc.queryAllEntities(false, true, RS.EntityHatch);
 
-            var op = new RDeleteObjectsOperation(false);
-
-            for (var j = 0; j < itms.length; j++) {
-                var itm = doc.queryEntity(itms[j]);
-
-                if (isHatchEntity(itm)) {
-                    op.deleteObject(itm);
-                }
-            }
-
-            di.applyOperation(op);
-
-            var op2 = new RModifyObjectsOperation();
-
-            for (var j = 0; j < itms.length; j++) {
-                var itm = doc.queryEntity(itms[j]);
-
-                if (!isNull(itm)) {
-                    SetStyle(itm);
-
-                    if (isPolylineEntity(itm)) {
-
-                        var newSegs = [];
-
-                        var c = 0;
-
-                        for (var k = 0; k < itm.countSegments(); k++) {
-                            var seg = itm.getSegmentAt(k);
-                            if (isLineShape(seg)) {
-                                if (seg.getLength() < 1e-5) {
-                                    c++;
-                                    continue;
-                                }
-                            }
-
-                            newSegs.push(seg.clone());
-                        }
-
-                        if (c > 0) {
-                            var num = newSegs.length;
-
-                            for (var k = 0; k < num; k++) {
-                                var shA = newSegs[k],
-                                    shB = newSegs[(k+1)%num];
-
-                                if (isArcShape(shA) && isArcShape(shB)) {
-                                    // nix
-                                } else if (isArcShape(shA) && isLineShape(shB)) {
-                                    if (shB.getStartPoint().equalsFuzzy(shA.getEndPoint(), 1e-5)) {
-                                        shB.setStartPoint(shA.getEndPoint());
-                                    }
-                                } else {
-                                    if (shA.getEndPoint().equalsFuzzy(shB.getStartPoint(), 1e-5)) {
-                                        shA.setEndPoint(shB.getStartPoint());
-                                    }
-                                }
-
-                            }
-
-                            var pl = new RPolyline();
-
-                            for (var k = 0; k < num; k++) {
-                                pl.appendShapeAuto(newSegs[k]);
-                            }
-
-                            if (pl.isGeometricallyClosed(1e-5)) {
-                                pl.convertToClosed();
-                            }
-
-                            itm.setShape(pl);
-                        }
-
-                    }
-
-                    op2.addObject(itm, false);
-                }
-            }
-            di.applyOperation(op2);
-
-        } else if (isHatchEntity(ent)) {
-            var op = new RDeleteObjectsOperation(false);
-            op.deleteObject(ent);
-            di.applyOperation(op);
-
-        } else {
-            var op = new RModifyObjectsOperation();
-            SetStyle(ent);
-            op.addObject(ent, false);
-            di.applyOperation(op);
-
-        }
+    var op = new RDeleteObjectsOperation(false);
+    for (var i = 0; i < hatches.length; i++) {
+        op.deleteObject(doc.queryEntity(hatches[i]));
     }
+    di.applyOperation(op);
 
     // verschiebt die blöcke auf die 0
 
@@ -149,7 +58,98 @@ LICENSE file in the root directory of this source tree.
 
     di.applyOperation(op);
 
-    // löscht leere layer
+    // wandelt die circles in arcs um
+
+    var op = new RAddObjectsOperation(false);
+
+    var circles = doc.queryAllEntities(false, true, RS.EntityCircle);
+
+    for (var i = 0; i < circles.length; i++) {
+        var ent = doc.queryEntity(circles[i]),
+            sh = ent.castToShape();
+
+        var rad = sh.getRadius(),
+            c = sh.getCenter();
+
+        var arcA = new RArc(c, rad, 0, Math.PI),
+            arcB = new RArc(c, rad, Math.PI, 2*Math.PI);
+
+        var entA = shapeToEntity(doc, arcA),
+            entB = shapeToEntity(doc, arcB);
+
+        entA.copyAttributesFrom(ent.data());
+        entB.copyAttributesFrom(ent.data());
+
+        op.addObject(entA, false);
+        op.addObject(entB, false);
+        op.deleteObject(ent);
+
+    }
+
+    di.applyOperation(op);
+
+    var op = new RModifyObjectsOperation(false);
+
+    var rest = doc.queryAllEntities(false, true, [RS.EntityArc, RS.EntityPolyline, RS.EntityLine]);
+
+    for (var i = 0; i < rest.length; i++) {
+        var ent = doc.queryEntity(rest[i]);
+
+        SetStyle(ent);
+        op.addObject(ent, false);
+    }
+
+    di.applyOperation(op);
+
+    var op = new RAddObjectsOperation(false);
+
+    var lines = doc.queryAllEntities(false, true, [RS.EntityPolyline, RS.EntityLine]);
+
+    for (var i = 0; i < lines.length; i++) {
+        var ent = doc.queryEntity(lines[i]),
+            sh = ent.castToShape();
+
+        if (isLineEntity(ent)) {
+            if (sh.getLength() < .1) {
+                op.deleteObject(ent);
+            }
+
+        } else {
+
+            var expl = sh.getExploded().filter(function (s) { return isArcShape(s) || s.getLength() > .1; });
+
+            var n = expl.length;
+
+            if (n > 1) {
+                for (var j = 0; j < n; j++) {
+                    if (isLineShape(expl[j])) {
+                        var pre = expl[(j+n-1)%n],
+                            nxt = expl[(j+1)%n];
+
+                        if (expl[j].getStartPoint().equalsFuzzy(pre.getEndPoint(), .1)) {
+                            expl[j].setStartPoint(pre.getEndPoint());
+                        }
+
+                        if (expl[j].getEndPoint().equalsFuzzy(nxt.getStartPoint(), .1)) {
+                            expl[j].setEndPoint(nxt.getStartPoint());
+                        }
+                    }
+                }
+            }
+
+            var newPl = new RPolyline(expl);
+            var newEnt = shapeToEntity(doc, newPl);
+
+            newEnt.copyAttributesFrom(ent.data());
+
+            op.addObject(newEnt, false);
+            op.deleteObject(ent);
+
+        }
+
+    }
+
+    di.applyOperation(op);
 
     var op = new RDeleteObjectsOperation(false);
 

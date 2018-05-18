@@ -9,9 +9,8 @@ include('/home/zippy/lc-qcad/kdTree.js');
 
     var doc = getDocument();
     var di = getDocumentInterface();
-    var entities = doc.queryAllEntities(false, true);
 
-    //di.autoZoom();
+    var entities = doc.queryAllEntities(false, true);
 
     var filtered = [],
         pts = [];
@@ -41,7 +40,7 @@ include('/home/zippy/lc-qcad/kdTree.js');
         if (side == 'right') {
             var sh = shs[shs.length-1];
             var pt = sh.shape.getEndPoint();
-            var nearest = tree.nearest({ 'x': pt.x, 'y': pt.y }, 2);
+            var nearest = tree.nearest({ 'x': pt.x, 'y': pt.y }, 5);
 
             for (var i = 0; i < nearest.length; i++) {
                 var near = nearest[i];
@@ -53,7 +52,7 @@ include('/home/zippy/lc-qcad/kdTree.js');
                     && near[0].obj != shs[0].id
                     && layId == ent.getLayerId()) {
 
-                    var sh2 = ent.castToShape();
+                    var sh2 = ent.castToShape().clone();
 
                     if (near[0].end == 1) {
                         sh2.reverse();
@@ -63,12 +62,14 @@ include('/home/zippy/lc-qcad/kdTree.js');
 
                     Search(shs, side, layId);
 
+                    break;
+
                 }
             }
         } else {
             var sh = shs[0];
             var pt = sh.shape.getStartPoint();
-            var nearest = tree.nearest({ 'x': pt.x, 'y': pt.y }, 2);
+            var nearest = tree.nearest({ 'x': pt.x, 'y': pt.y }, 5);
 
             for (var i = 0; i < nearest.length; i++) {
                 var near = nearest[i];
@@ -80,7 +81,7 @@ include('/home/zippy/lc-qcad/kdTree.js');
                     && near[0].obj != shs[shs.length-1].id
                     && layId == ent.getLayerId()) {
 
-                    var sh2 = ent.castToShape();
+                    var sh2 = ent.castToShape().clone();
 
                     if (near[0].end == 0) {
                         sh2.reverse();
@@ -89,6 +90,8 @@ include('/home/zippy/lc-qcad/kdTree.js');
                     shs.unshift({ 'shape': sh2, 'id': near[0].obj });
 
                     Search(shs, side, layId);
+
+                    break;
 
                 }
             }
@@ -103,7 +106,7 @@ include('/home/zippy/lc-qcad/kdTree.js');
         if (visited.indexOf(id) < 0) {
             var f = doc.queryEntity(id);
 
-            var shapes = [{ 'id': id, 'shape': f.castToShape() }];
+            var shapes = [{ 'id': id, 'shape': f.castToShape().clone() }];
 
             Search(shapes, 'right', f.getLayerId());
             Search(shapes, 'left', f.getLayerId());
@@ -112,24 +115,23 @@ include('/home/zippy/lc-qcad/kdTree.js');
 
             Array.prototype.push.apply(visited, ids);
 
-            var newPl = new RPolyline(shapes.map(function (s) { return s.shape.clone(); }));
+            var newPl = new RPolyline(shapes.map(function (s) { return s.shape; }));
 
-            di.setCurrentBlock(f.getBlockId());
-            di.setCurrentLayer(f.getLayerId());
+            var pl = shapeToEntity(doc, newPl);
 
-            var op = new RAddObjectsOperation();
-            op.addObject(shapeToEntity(doc, newPl));
+            pl.copyAttributesFrom(f.data());
 
-            for (var j = 0; j < ids.length; j++) {
-                op.deleteObject(doc.queryEntity(ids[j]));
-            }
-
+            var op = new RAddObjectsOperation(false);
+            op.addObject(pl, false);
             di.applyOperation(op);
 
         }
     }
 
-    di.setCurrentBlock(RBlock.modelSpaceName);
-    di.setCurrentLayer(doc.getLayer0Id());
+    var op = new RDeleteObjectsOperation(false);
+    for (var i = 0; i < visited.length; i++) {
+        op.deleteObject(doc.queryEntity(visited[i]));
+    }
+    di.applyOperation(op);
 
 })();

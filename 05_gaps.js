@@ -368,10 +368,9 @@ function AddSideGaps (pts, infos, sides, q) {
 }
 
 (function() {
+
     var doc = getDocument();
     var di = getDocumentInterface();
-
-    var offsLay = doc.queryLayer('Offs');
 
     var entities = doc.queryAllEntities();
 
@@ -390,141 +389,199 @@ function AddSideGaps (pts, infos, sides, q) {
         layC = addLayer('New', 'Cyan');
     }
 
+    var layD = doc.queryLayer('Gravur');
+
     var i;
 
     for (i = 0; i < entities.length; i++) {
         var ent = doc.queryEntity(entities[i]);
 
-        if (isPolylineEntity(ent)
-            && ent.hasCustomProperty('Foo', 'Outer')) {
+        var layName = ent.getLayerName();
 
-            var pl = ent.getData();
+        if (layName == 'Offs' || layName == 'Gravur') {
 
-            var segs = pl.getExploded();
-            var simplified = [];
+            if (layName == 'Offs'
+                && ent.hasCustomProperty('Foo', 'Outer')) {
 
-            for (var j = 0; j < segs.length; j++) {
-                var seg = segs[j];
+                var pl = ent.getData();
 
-                if (isArcShape(seg)) {
-                    var apr = seg.approximateWithLines(1);
+                var segs = pl.getExploded();
+                var simplified = [];
 
-                    Array.prototype.push.apply(simplified, apr.getExploded());
-                } else {
-                    simplified.push(seg);
+                var pars = [];
+
+                for (var j = 0; j < segs.length; j++) {
+                    var seg = segs[j];
+
+                    if (isArcShape(seg)) {
+                        var apr = seg.approximateWithLines(1),
+                            expl = apr.getExploded();
+
+                        Array.prototype.push.apply(simplified, expl);
+
+                        for (var k = 0; k < expl.length; k++) {
+                            pars.push(j);
+                        }
+                    } else {
+                        simplified.push(seg);
+                        pars.push(j);
+                    }
                 }
-            }
 
-            var pts = [];
+                var pts = [];
 
-            for (var j = 0; j < simplified.length; j++) {
-                pts.push(simplified[j].getStartPoint());
-            }
+                for (var j = 0; j < simplified.length; j++) {
+                    pts.push(simplified[j].getStartPoint());
+                }
 
-            // konvexe hülle
-            var cx = GetCX(pts);
+                // konvexe hülle
+                var cx = GetCX(pts);
 
-            var cxPoly = new RPolyline(cx.map(function (id) { return pts[id]; }), true),
-                cxEnt = shapeToEntity(doc, cxPoly);
+                var cxPoly = new RPolyline(cx.map(function (id) { return pts[id]; }), true),
+                    cxEnt = shapeToEntity(doc, cxPoly);
 
-            // boundary-box
-            var obb = GetOBB(pts, cx);
+                // boundary-box
+                var obb = GetOBB(pts, cx);
 
-            var obbEnt = shapeToEntity(doc, obb[4]);
+                var obbEnt = shapeToEntity(doc, obb[4]);
 
-            var infos = GetInfos(pts, cx, obb);
+                var infos = GetInfos(pts, cx, obb);
 
-            for (var j = 0; j < infos.length; j++) {
-                cxEnt.setCustomProperty('Infos', 'E' + j, infos[j].side + '; ' + infos[j].ids.join(',') + '; ' + infos[j].real);
-            }
+                for (var j = 0; j < infos.length; j++) {
+                    cxEnt.setCustomProperty('Infos', 'E' + j, infos[j].side + '; ' + infos[j].ids.join(',') + '; ' + infos[j].real);
+                }
 
-            var R = {};
+                var R = {};
 
-            var ratio = obb[1]/obb[2];
+                var ratio = obb[1]/obb[2];
 
-            ratio = Math.min(ratio, 1/ratio);
+                ratio = Math.min(ratio, 1/ratio);
 
-            var pairs = ['AC', 'BD'];
+                var pairs = ['AC', 'BD'];
 
-            var diag = obb[1]*obb[1]+obb[2]*obb[2];
+                var diag = obb[1]*obb[1]+obb[2]*obb[2];
 
-            if (diag < 196) {
-                AddGaps(pts, infos.filter(function (info) { return info.real; }).reduce(function (p, c) {
-                    return p.l < c.l ? p : c;
-                }).ids, R, true);
+                if (diag < 196) {
+                    AddGaps(pts, infos.filter(function (info) { return info.real; }).reduce(function (p, c) {
+                        return p.l < c.l ? p : c;
+                    }).ids, R, true);
+
+                } else {
+
+                    if (ratio < .8) {
+                        var sides = obb[2] > obb[1] ? pairs[0] : pairs[1];
+
+                        if (ratio > .2) {
+                            AddSideGaps(pts, infos, sides, R);
+                        } else {
+                            if (infos.some(function (info) { return info.side == sides[0] && info.ids.length > 2; })) {
+                                AddSideGaps(pts, infos, sides[0], R);
+
+                            } else if (infos.some(function (info) { return info.side == sides[1] && info.ids.length > 2; })) {
+                                AddSideGaps(pts, infos, sides[1], R);
+
+                            } else {
+                                // die langen seiten haben keine nasen
+                                AddSideGaps(pts, infos, pairs[(pairs.indexOf(sides)+1)%2], R);
+                            }
+                        }
+
+                    } else {
+                        AddSideGaps(pts, infos, 'ABCD', R);
+                    }
+
+                }
+
+                di.setCurrentLayer(layC.getId());
+
+                var num = pts.length;
+
+                /*var lines = [];
+
+                for (var j = 0; j < num; j++) {
+                    if (R.hasOwnProperty(j)) {
+                        Array.prototype.push.apply(lines, R[j]);
+                    } else {
+                        lines.push([pts[j], pts[(j+1)%num]]);
+                    }
+                }
+
+                var op = new RAddObjectsOperation(false);
+
+                for (var j = 0; j < lines.length; j++) {
+                    var line = new RLine(lines[j][0], lines[j][1]);
+
+                    var lineEnt = shapeToEntity(doc, line);
+
+                    op.addObject(lineEnt);
+
+                }
+
+                di.applyOperation(op);*/
+
+                var newSegs = [],
+                    used = [];
+
+                for (var j = 0; j < num; j++) {
+                    if (R.hasOwnProperty(j)) {
+                        Array.prototype.push.apply(newSegs, R[j].map(function (r) { return new RLine(r[0], r[1]); }));
+                    } else {
+                        if (used.indexOf(pars[j]) < 0) {
+                            newSegs.push(segs[pars[j]].clone());
+
+                            used.push(pars[j]);
+                        }
+                    }
+                }
+
+                var op = new RAddObjectsOperation(false);
+
+                for (var j = 0; j < newSegs.length; j++) {
+                    var newEnt = shapeToEntity(doc, newSegs[j]);
+                    op.addObject(newEnt);
+                }
+
+                di.applyOperation(op);
+
+                // darstellung
+
+                di.setCurrentLayer(layA.getId());
+
+                var op2 = new RAddObjectsOperation(false);
+                op2.addObject(cxEnt);
+                di.applyOperation(op2);
+
+                di.setCurrentLayer(layB.getId());
+
+                var op3 = new RAddObjectsOperation(false);
+                op3.addObject(obbEnt);
+                di.applyOperation(op3);
+
+                // testweise
+
+                var op4 = new RDeleteObjectsOperation(false);
+                op4.deleteObject(ent);
+                di.applyOperation(op4);
 
             } else {
 
-                if (ratio < .8) {
-                    var sides = obb[2] > obb[1] ? pairs[0] : pairs[1];
+                var op = new RModifyObjectsOperation(false);
 
-                    if (ratio > .2) {
-                        AddSideGaps(pts, infos, sides, R);
-                    } else {
-                        if (infos.some(function (info) { return info.side == sides[0] && info.ids.length > 2; })) {
-                            AddSideGaps(pts, infos, sides[0], R);
+                var expl = ent.getExploded();
 
-                        } else if (infos.some(function (info) { return info.side == sides[1] && info.ids.length > 2; })) {
-                            AddSideGaps(pts, infos, sides[1], R);
-
-                        } else {
-                            // die langen seiten haben keine nasen
-                            AddSideGaps(pts, infos, pairs[(pairs.indexOf(sides)+1)%2], R);
-                        }
-                    }
-
-                } else {
-                    AddSideGaps(pts, infos, 'ABCD', R);
+                for (var j = 0; j < expl.length; j++) {
+                    var newEnt = shapeToEntity(doc, expl[j].clone());
+                    newEnt.setLayerId(layName == 'Gravur' ? layD.getId() : layC.getId());
+                    op.addObject(newEnt, false);
                 }
 
-            }
-
-            di.setCurrentLayer(layC.getId());
-
-            var lines = [];
-
-            var num = pts.length;
-
-            for (var j = 0; j < num; j++) {
-                if (R.hasOwnProperty(j)) {
-                    Array.prototype.push.apply(lines, R[j]);
-                } else {
-                    lines.push([pts[j], pts[(j+1)%num]]);
+                if (layName == 'Gravur') {
+                    op.deleteObject(ent);
                 }
-            }
 
-            var op = new RAddObjectsOperation();
-
-            for (var j = 0; j < lines.length; j++) {
-                var line = new RLine(lines[j][0], lines[j][1]);
-
-                var lineEnt = shapeToEntity(doc, line);
-
-                op.addObject(lineEnt);
+                di.applyOperation(op);
 
             }
-
-            di.applyOperation(op);
-
-            // darstellung
-
-            di.setCurrentLayer(layA.getId());
-
-            var op2 = new RAddObjectsOperation();
-            op2.addObject(cxEnt);
-            di.applyOperation(op2);
-
-            di.setCurrentLayer(layB.getId());
-
-            var op3 = new RAddObjectsOperation();
-            op3.addObject(obbEnt);
-            di.applyOperation(op3);
-
-            // testweise
-
-            var op4 = new RDeleteObjectsOperation(false);
-            op4.deleteObject(ent);
-            di.applyOperation(op4);
 
         }
     }

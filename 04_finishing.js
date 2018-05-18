@@ -24,7 +24,7 @@ LICENSE file in the root directory of this source tree.
 
         var itms = doc.queryBlockEntities(b.getReferencedBlockId());
 
-        var op = new RModifyObjectsOperation();
+        var op = new RModifyObjectsOperation(false);
         for (var j = 0; j < itms.length; j++) {
             var itm = doc.queryEntity(itms[j]);
             itm.setBlockId(model);
@@ -42,37 +42,5 @@ LICENSE file in the root directory of this source tree.
         di.applyOperation(op2);
 
     }
-
-    /*
-
-    // zerlegt die polylines
-    var all = doc.queryAllEntities();
-
-    for (var i = 0; i < all.length; i++) {
-        var line = doc.queryEntity(all[i]);
-        if (isPolylineEntity(line)) {
-            var op2 = new RAddObjectsOperation(false);
-
-            var shapes = line.getExploded();
-
-            for (var j = 0; j < shapes.length; j++) {
-                var cloned = shapes[j].clone();
-
-                var ent = shapeToEntity(doc, cloned);
-                ent.copyAttributesFrom(line.data());
-
-                if (line.hasCustomProperties()) {
-                    ent.copyCustomPropertiesFrom(line.data(), 'Foo');
-                }
-
-                op2.addObject(ent, false);
-            }
-
-            op2.deleteObject(line);
-            di.applyOperation(op2);
-        }
-    }
-
-    */
 
 })();

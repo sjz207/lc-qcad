@@ -18,12 +18,12 @@ LICENSE file in the root directory of this source tree.
     // cleanup
     var bb = doc.queryBlock('BB');
     if (!isNull(bb)) {
-        var _op = new RDeleteObjectsOperation();
+        var _op = new RDeleteObjectsOperation(false);
         _op.deleteObject(bb);
         di.applyOperation(_op);
     }
 
-    var op = new RModifyObjectsOperation();
+    var op = new RModifyObjectsOperation(false);
     var entities = doc.queryAllEntities();
 
     var objs = [];
@@ -106,7 +106,7 @@ LICENSE file in the root directory of this source tree.
 
     di.applyOperation(op);
 
-    var op2 = new RAddObjectsOperation();
+    var op2 = new RAddObjectsOperation(false);
 
     var block = new RBlock(doc, 'BB', new RVector(0, 0));
     op2.addObject(block);
@@ -114,7 +114,7 @@ LICENSE file in the root directory of this source tree.
 
     var id = doc.getBlockId('BB');
 
-    var op3 = new RAddObjectsOperation();
+    var op3 = new RAddObjectsOperation(false);
 
     di.setCurrentBlock('BB');
 

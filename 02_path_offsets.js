@@ -14,22 +14,13 @@ LICENSE file in the root directory of this source tree.
         offsLay = addLayer('Offs', 'Green');
     }
 
-    var entities;
-
-    if (doc.countSelectedEntities() > 0) {
-        entities = doc.querySelectedEntities();
-    } else {
-        entities = doc.queryAllEntities();
-    }
+    var entities = doc.queryAllEntities();
 
     for (var i = 0; i < entities.length; i++) {
         var ent = doc.queryEntity(entities[i]);
 
         if (isBlockReferenceEntity(ent)) {
-            var blkId = ent.getReferencedBlockId();
-            var itms = doc.queryBlockEntities(blkId);
-
-            di.setCurrentBlock(blkId);
+            var itms = doc.queryBlockEntities(ent.getReferencedBlockId());
 
             var filtered = [];
 
@@ -60,7 +51,7 @@ LICENSE file in the root directory of this source tree.
                     if (c > 0 ^ shA.getOrientation() == RS.CW) {
                         // richtung umkehren
 
-                        var op = new RModifyObjectsOperation();
+                        var op = new RModifyObjectsOperation(false);
 
                         itmA.reverse();
                         op.addObject(itmA, false);
@@ -71,18 +62,6 @@ LICENSE file in the root directory of this source tree.
                 }
 
             }
-
-            var offs = [];
-
-            /*
-            for (var j = 0; j < filtered.length; j++) {
-                var worker = new RPolygonOffset(.15/2, 1, RVector.invalid, RS.JoinMiter, false);
-                worker.setForceSide(RS.RightHand);
-                worker.addPolyline(filtered[j].castToShape());
-
-                Array.prototype.push.apply(offs, worker.getOffsetShapes());
-            }
-            */
 
             // mit workaround
 
@@ -98,12 +77,28 @@ LICENSE file in the root directory of this source tree.
                     worker.setForceSide(RS.RightHand);
                     worker.addPolyline(newPl);
 
-                    var res = worker.getOffsetShapes();
+                    var offs = worker.getOffsetShapes();
 
-                    if (res.length == 0) {
+                    if (offs.length == 0) {
                         expl.push(expl.shift());
+
                     } else {
-                        Array.prototype.push.apply(offs, res);
+                        var op = new RAddObjectsOperation(false);
+
+                        for (var k = 0; k < offs.length; k++) {
+                            var off = shapeToEntity(doc, offs[k].data());
+
+                            off.copyAttributesFrom(filtered[j].data());
+                            off.setLayerId(offsLay.getId());
+
+                            if (offs[k].getOrientation() == RS.CCW) {
+                                off.setCustomProperty('Foo', 'Outer', 'yes');
+                            }
+
+                            op.addObject(off, false);
+                        }
+
+                        di.applyOperation(op);
 
                         break;
                     }
@@ -111,27 +106,6 @@ LICENSE file in the root directory of this source tree.
                 }
 
             }
-
-            di.setCurrentLayer(offsLay.getId());
-
-            var op = new RAddObjectsOperation();
-
-            for (var j = 0; j < offs.length; j++) {
-                var off = shapeToEntity(doc, offs[j].data());
-
-                if (offs[j].getOrientation() == RS.CCW) {
-                    off.setCustomProperty('Foo', 'Outer', 'yes');
-                }
-
-                op.addObject(off);
-            }
-
-            di.applyOperation(op);
-
-            di.setCurrentLayer(doc.getLayer0Id());
-
-
-            di.setCurrentBlock(doc.getModelSpaceBlockId());
         }
     }
 
