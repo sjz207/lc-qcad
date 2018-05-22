@@ -155,7 +155,8 @@ LICENSE file in the root directory of this source tree.
 
     var layers = doc.queryAllLayers();
     for (var i = 0; i < layers.length; i++) {
-        if (doc.queryLayerEntities(layers[i], true).length == 0) {
+        if (doc.queryLayerEntities(layers[i], true).length == 0
+            && layers[i] != doc.getLayer0Id()) {
             op.deleteObject(doc.queryLayer(layers[i]));
         }
     }

@@ -1,0 +1,309 @@
+/* Copyright (c) 2018, Ronald Römer
+This source code is licensed under the MIT license found in the
+LICENSE file in the root directory of this source tree.
+*/
+
+(function () {
+
+    var doc = getDocument();
+    var di = getDocumentInterface();
+    var entities = doc.queryAllEntities();
+
+    // AABB-tree
+
+    var nodes = [];
+
+    function BB (minX, maxX, minY, maxY) {
+        this.minX = minX;
+        this.maxX = maxX;
+        this.minY = minY;
+        this.maxY = maxY;
+
+        this.merge = function (other) {
+            return new BB (Math.min(this.minX, other.minX),
+                Math.max(this.maxX, other.maxX),
+                Math.min(this.minY, other.minY),
+                Math.max(this.maxY, other.maxY));
+        }
+
+        this.area = function () {
+            return (this.maxX-this.minX)*(this.maxY-this.minY);
+        }
+
+        this.contains = function (other) {
+            return other.minX > this.minX
+                && other.maxX < this.maxX
+                && other.minY > this.minY
+                && other.maxY < this.maxY;
+        }
+    }
+
+    function Node () {
+        this.left = null;
+        this.right = null;
+        this.parent = null;
+        this.bb = null;
+        this.obj = null;
+    }
+
+    var rootId = null;
+
+    function AddNode (node) {
+        nodes.push(node);
+        return nodes.length-1;
+    }
+
+    function Update (id) {
+        while (id !== null) {
+            var node = nodes[id];
+
+            node.bb = nodes[node.left].bb.merge(nodes[node.right].bb);
+
+            id = node.parent;
+        }
+    }
+
+    function InsertObj (id) {
+        var obj = doc.queryEntity(id),
+            box = obj.getBoundingBox();
+
+        var a = box.getCorner1(),
+            b = box.getCorner2();
+
+        var node = new Node();
+        node.bb = new BB(a.x, b.x, a.y, b.y);
+        node.obj = id;
+
+        var nodeId = AddNode(node);
+
+        if (rootId === null) {
+            rootId = nodeId;
+        } else {
+
+            var _id = rootId;
+
+            while (nodes[_id].left !== null) {
+                var curr = nodes[_id];
+
+                var bb = curr.bb.merge(node.bb),
+                    diff = bb.area()-curr.bb.area();
+
+                var bbA = nodes[curr.left].bb.merge(node.bb),
+                    bbB = nodes[curr.right].bb.merge(node.bb);
+
+                var cLeft, cRight;
+
+                if (nodes[curr.left].left === null) {
+                    cLeft = bbA.area()+diff;
+                } else {
+                    cLeft = bbA.area()-nodes[curr.left].bb.area()+diff;
+                }
+
+                if (nodes[curr.right].left === null) {
+                    cRight = bbB.area()+diff;
+                } else {
+                    cRight = bbB.area()-nodes[curr.right].bb.area()+diff;
+                }
+
+                if (bb.area() < cLeft && bb.area() < cRight) {
+                    break;
+                }
+
+                if (cLeft < cRight) {
+                    _id = curr.left;
+                } else {
+                    _id = curr.right;
+                }
+
+            }
+
+            var parA = nodes[_id].parent;
+
+            var parB = new Node();
+            parB.bb = nodes[_id].bb.merge(node.bb);
+
+            parB.left = _id;
+            parB.right = nodeId;
+            parB.parent = parA;
+
+            var idB = AddNode(parB);
+
+            nodes[_id].parent = idB;
+            nodes[nodeId].parent = idB;
+
+            if (parA === null) {
+                rootId = idB;
+            } else if (nodes[parA].left == _id) {
+                nodes[parA].left = idB;
+            } else {
+                nodes[parA].right = idB;
+            }
+
+            Update(parA);
+
+        }
+
+    }
+
+    var filtered = [];
+
+    for (var i = 0; i < entities.length; i++) {
+        var id = entities[i],
+            ent = doc.queryEntity(id);
+
+        if (isPolylineEntity(ent)) {
+            InsertObj(id);
+            filtered.push(id);
+        }
+    }
+
+    var bbs = {};
+
+    //var op = new RAddObjectsOperation(false);
+
+    for (var i = 0; i < nodes.length; i++) {
+        var node = nodes[i],
+            box = new RBox(new RVector(node.bb.minX, node.bb.minY),
+                new RVector(node.bb.maxX, node.bb.maxY));
+
+        //var boxEnt = shapeToEntity(doc, box.getPolyline2d());
+        //op.addObject(boxEnt, false);
+
+        if (node.obj !== null) {
+            bbs[node.obj] = node.bb;
+        }
+    }
+
+    //di.applyOperation(op);
+
+    function Search (id) {
+        var found = [];
+
+        var stack = [rootId];
+
+        var bb = bbs[id];
+
+        while (stack.length > 0) {
+            var s = stack.shift();
+
+            if (s === null) {
+                continue;
+            }
+
+            if (nodes[s].bb.contains(bb)) {
+                if (nodes[s].left === null && nodes[s].obj != id) {
+                    found.push(nodes[s].obj);
+                } else {
+                    stack.push(nodes[s].left);
+                    stack.push(nodes[s].right);
+                }
+            }
+        }
+
+        return found;
+    }
+
+    var parents = filtered.slice(0),
+        childs = {};
+
+    for (var i = 0; i < filtered.length; i++) {
+        var pars = Search(filtered[i]);
+
+        var ent = doc.queryEntity(filtered[i]),
+            sh = ent.castToShape();
+
+        if (pars.length > 0) {
+
+            for (var j = 0; j < pars.length; j++) {
+                var par = doc.queryEntity(pars[j]),
+                    parSh = par.castToShape();
+
+                if (parSh.containsShape(sh)) {
+                    parents.splice(parents.indexOf(filtered[i]), 1);
+
+                    if (!childs.hasOwnProperty(pars[j])) {
+                        childs[pars[j]] = [];
+                    }
+
+                    childs[pars[j]].push(filtered[i]);
+
+                    break;
+                }
+            }
+        }
+    }
+
+    // gruppiert nach größe
+
+    var sizes = {};
+
+    for (var i = 0; i < parents.length; i++) {
+        var par = parents[i],
+            bb = bbs[par];
+
+        var s = (bb.maxY-bb.minY).toFixed(4) + ',' + (bb.maxX-bb.minX).toFixed(4);
+
+        if (!sizes.hasOwnProperty(s)) {
+            sizes[s] = [];
+        }
+
+        sizes[s].push(par);
+
+    }
+
+    var c = 0;
+
+    for (var s in sizes) {
+        if (sizes.hasOwnProperty(s)) {
+            var pars = sizes[s],
+                bb = bbs[pars[0]],
+                w = bb.maxX-bb.minX,
+                h = bb.maxY-bb.minY;
+
+            var blk = new RBlock(doc, 'B' + c, new RVector(0, 0));
+
+            var op = new RAddObjectOperation(blk, false);
+            di.applyOperation(op);
+
+            var ref = new RBlockReferenceEntity(doc, new RBlockReferenceData(blk.getId(), new RVector(0, 0), new RVector(1, 1), 0));
+
+            var op2 = new RAddObjectsOperation(false);
+            op2.addObject(ref);
+
+            for (var i = 0; i < pars.length; i++) {
+                var par = pars[i],
+                    ent = doc.queryEntity(par),
+                    curr = new RVector(bbs[par].minX, bbs[par].minY);
+
+                var newPos = w < h ? new RVector(bb.minX+i*(w+2), bb.minY) : new RVector(bb.minX, bb.minY+i*(h+2));
+
+                var vec = newPos.operator_subtract(curr);
+
+                ent.setBlockId(blk.getId());
+                ent.move(vec);
+
+                op2.addObject(ent, false);
+
+                if (childs.hasOwnProperty(par)) {
+                    for (var j = 0; j < childs[par].length; j++) {
+                        var inner = doc.queryEntity(childs[par][j]);
+
+                        inner.setBlockId(blk.getId());
+                        inner.move(vec);
+
+                        op2.addObject(inner, false);
+                    }
+                }
+
+            }
+
+            di.applyOperation(op2);
+
+            c++;
+
+        }
+    }
+
+
+})();
+

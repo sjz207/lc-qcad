@@ -102,6 +102,10 @@ function GetCX (pts) {
 
 }
 
+function _ (v) {
+    return Math.min(1, Math.max(-1, v));
+}
+
 function GetOBB (pts, cx) {
     var _pts = cx.map(function (id) { return pts[id]; });
 
@@ -135,8 +139,8 @@ function GetOBB (pts, cx) {
         vA.normalize();
         vB.normalize();
 
-        var angA = Math.acos(vA.dot(ref));
-        var angB = Math.acos(vB.dot(ref.getNegated()));
+        var angA = Math.acos(_(vA.dot(ref)));
+        var angB = Math.acos(_(vB.dot(ref.getNegated())));
 
         if (angA < angB) {
             ref = vA;
