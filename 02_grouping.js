@@ -145,15 +145,21 @@ LICENSE file in the root directory of this source tree.
 
     }
 
-    var filtered = [];
+    var filtered = [],
+        others = [];
 
     for (var i = 0; i < entities.length; i++) {
         var id = entities[i],
             ent = doc.queryEntity(id);
 
         if (isPolylineEntity(ent)) {
-            InsertObj(id);
-            filtered.push(id);
+            if (ent.getLayerName() == 'Gravur') {
+                others.push(id);
+
+            } else {
+                InsertObj(id);
+                filtered.push(id);
+            }
         }
     }
 
@@ -203,6 +209,35 @@ LICENSE file in the root directory of this source tree.
         return found;
     }
 
+    function Search2 (pt) {
+        var found = [];
+
+        var stack = [rootId];
+
+        while (stack.length > 0) {
+            var s = stack.shift();
+
+            if (s === null) {
+                continue;
+            }
+
+            var bb = nodes[s].bb;
+
+            if (pt.x > bb.minX && pt.x < bb.maxX
+                && pt.y > bb.minY && pt.y < bb.maxY) {
+
+                if (nodes[s].left === null) {
+                    found.push(nodes[s].obj);
+                } else {
+                    stack.push(nodes[s].left);
+                    stack.push(nodes[s].right);
+                }
+            }
+        }
+
+        return found;
+    }
+
     var parents = filtered.slice(0),
         childs = {};
 
@@ -229,6 +264,33 @@ LICENSE file in the root directory of this source tree.
 
                     break;
                 }
+            }
+        }
+    }
+
+    // ordnet die gravuren zu
+
+    for (var i = 0; i < others.length; i++) {
+        var ent = doc.queryEntity(others[i]),
+            sh = ent.castToShape();
+
+        var mids = sh.getMiddlePoints();
+
+        var pars = Search2(mids[0]);
+
+        for (var j = 0; j < pars.length; j++) {
+            var par = doc.queryEntity(pars[j]),
+                parSh = par.castToShape();
+
+            if (parents.indexOf(pars[j]) != -1
+                && parSh.contains(mids[0])) {
+                if (!childs.hasOwnProperty(pars[j])) {
+                    childs[pars[j]] = [];
+                }
+
+                childs[pars[j]].push(others[i]);
+
+                break;
             }
         }
     }
@@ -304,6 +366,4 @@ LICENSE file in the root directory of this source tree.
         }
     }
 
-
 })();
-
