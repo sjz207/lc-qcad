@@ -3,6 +3,8 @@ This source code is licensed under the MIT license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
+
 function GetCX (pts) {
     // graham scan
 
@@ -301,7 +303,7 @@ function AddGaps (pts, ids, q, _a) {
 
     if (l > 2) {
 
-        var n = l/25>>0;
+        var n = l/cfg['gap-min-dist']>>0;
 
         if (n == 0) {
             n = 1;
@@ -310,7 +312,7 @@ function AddGaps (pts, ids, q, _a) {
         var d = l/n;
 
         // längere kanten haben so mehr als ein gap
-        if (_a && n == 1 && l > 25 && d/25 > .5) {
+        if (_a && n == 1 && l > cfg['gap-min-dist'] && d/cfg['gap-min-dist'] > .5) {
             d = l/++n;
         }
 
@@ -325,8 +327,8 @@ function AddGaps (pts, ids, q, _a) {
         var all = [pA];
 
         for (var i = 0; i < n; i++) {
-            all.push(mids[i].operator_add(v.operator_multiply(-.25)));
-            all.push(mids[i].operator_add(v.operator_multiply(.25)));
+            all.push(mids[i].operator_add(v.operator_multiply(-cfg['gap-width']/2)));
+            all.push(mids[i].operator_add(v.operator_multiply(cfg['gap-width']/2)));
         }
 
         all.push(pB);
@@ -393,7 +395,7 @@ function AddSideGaps (pts, infos, sides, q) {
         layC = addLayer('New', 'Cyan');
     }
 
-    var layD = doc.queryLayer('Gravur');
+    var layD = doc.queryLayer(cfg['engraving-layer-name']);
 
     var i;
 
@@ -402,10 +404,10 @@ function AddSideGaps (pts, infos, sides, q) {
 
         var layName = ent.getLayerName();
 
-        if (layName == 'Offs' || layName == 'Gravur') {
+        if (layName == 'Offs' || layName == cfg['engraving-layer-name']) {
 
             if (layName == 'Offs'
-                && ent.hasCustomProperty('Foo', 'Outer')) {
+                && ent.hasCustomProperty('lc-qcad', 'outside')) {
 
                 var pl = ent.getData();
 
@@ -450,10 +452,6 @@ function AddSideGaps (pts, infos, sides, q) {
                 var obbEnt = shapeToEntity(doc, obb[4]);
 
                 var infos = GetInfos(pts, cx, obb);
-
-                for (var j = 0; j < infos.length; j++) {
-                    cxEnt.setCustomProperty('Infos', 'E' + j, infos[j].side + '; ' + infos[j].ids.join(',') + '; ' + infos[j].real);
-                }
 
                 var R = {};
 
@@ -564,7 +562,7 @@ function AddSideGaps (pts, infos, sides, q) {
 
                 for (var j = 0; j < expl.length; j++) {
                     var newEnt = shapeToEntity(doc, expl[j].clone());
-                    newEnt.setLayerId(layName == 'Gravur' ? layD.getId() : layC.getId());
+                    newEnt.setLayerId(layName == cfg['engraving-layer-name'] ? layD.getId() : layC.getId());
                     op.addObject(newEnt, false);
                 }
                 di.applyOperation(op);

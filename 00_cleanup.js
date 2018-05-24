@@ -3,18 +3,20 @@ This source code is licensed under the MIT license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
+
 (function() {
 
     var doc = getDocument();
     var di = getDocumentInterface();
     var entities = doc.queryAllEntities();
 
-    var layA = doc.queryLayer('Schneiden');
+    var layA = doc.queryLayer(cfg['cutting-layer-name']);
     if (isNull(layA)) {
-        layA = addLayer('Schneiden', 'Black');
+        layA = addLayer(cfg['cutting-layer-name'], 'Black');
     }
 
-    var layB = doc.queryLayer('Gravur');
+    var layB = doc.queryLayer(cfg['engraving-layer-name']);
 
     if (!isNull(layB)) {
         var op = new RModifyObjectsOperation();
@@ -27,7 +29,7 @@ LICENSE file in the root directory of this source tree.
     }
 
     function SetStyle (itm) {
-        if (itm.getLayerName() != 'Gravur') {
+        if (itm.getLayerName() != cfg['engraving-layer-name']) {
             itm.setLayerId(layA.getId());
         }
         itm.setLinetypeId(0);

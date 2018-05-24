@@ -3,6 +3,8 @@ This source code is licensed under the MIT license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
+
 (function() {
 
     var doc = getDocument();

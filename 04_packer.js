@@ -3,6 +3,8 @@ This source code is licensed under the MIT license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
+
 (function() {
 
     var doc = getDocument();
@@ -39,7 +41,7 @@ LICENSE file in the root directory of this source tree.
 
     // die großen zuerst
     objs.sort(function (a, b) {
-        if (Math.abs(a.area-b.area) < 1e-6) {
+        if (Math.abs(a.area-b.area) < 1e-5) {
             return 0;
         } else if (a.area < b.area) {
             return 1;
@@ -48,7 +50,7 @@ LICENSE file in the root directory of this source tree.
         }
     });
 
-    var nodes = [new Node([0, 0], 500-10, 750-10)];
+    var nodes = [new Node([0, 0], cfg['paper-size'][0]-cfg['paper-padding'], cfg['paper-size'][1]-cfg['paper-padding'])];
 
     for (var i = 0; i < len; i++) {
         var obj = objs[i];
@@ -60,8 +62,8 @@ LICENSE file in the root directory of this source tree.
                 continue;
             }
 
-            var oh = obj.h+3,
-                ow = obj.w+3;
+            var oh = obj.h+2*cfg['packing-padding'],
+                ow = obj.w+2*cfg['packing-padding'];
 
             // passt das obj in den node?
             if (ow <= node.w
@@ -85,7 +87,7 @@ LICENSE file in the root directory of this source tree.
                 }
 
                 nodes.sort(function (a, b) {
-                    if (Math.abs(a.pos[0]-b.pos[0]) < 1e-7) {
+                    if (Math.abs(a.pos[0]-b.pos[0]) < 1e-5) {
                         if (a.pos[1] < b.pos[1]) { return -1; }
                         else { return 1; }
                     } else {
@@ -95,7 +97,7 @@ LICENSE file in the root directory of this source tree.
                 });
 
                 // verschieben
-                var v = new RVector(node.pos[0]-obj.pos.getX()+1.5, node.pos[1]-obj.pos.getY()+1.5);
+                var v = new RVector(node.pos[0]-obj.pos.getX()+cfg['packing-padding'], node.pos[1]-obj.pos.getY()+cfg['packing-padding']);
                 obj.entity.move(v);
                 op.addObject(obj.entity, false);
 

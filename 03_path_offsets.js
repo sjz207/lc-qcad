@@ -3,6 +3,8 @@ This source code is licensed under the MIT license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
+
 (function() {
 
     var doc = getDocument();
@@ -30,7 +32,7 @@ LICENSE file in the root directory of this source tree.
 
                 if (isPolylineEntity(itmA)
                     && itmA.isClosed()
-                    && itmA.getLayerName() != 'Gravur') {
+                    && itmA.getLayerName() != cfg['engraving-layer-name']) {
 
                     var c = 0;
 
@@ -73,7 +75,7 @@ LICENSE file in the root directory of this source tree.
                     var newPl = new RPolyline(expl);
                     newPl.convertToClosed();
 
-                    var worker = new RPolygonOffset(.15/2, 1, RVector.invalid, RS.JoinMiter, false);
+                    var worker = new RPolygonOffset(cfg['cutting-width']/2, 1, RVector.invalid, RS.JoinMiter, false);
                     worker.setForceSide(RS.RightHand);
                     worker.addPolyline(newPl);
 
@@ -92,7 +94,7 @@ LICENSE file in the root directory of this source tree.
                             off.setLayerId(offsLay.getId());
 
                             if (offs[k].getOrientation() == RS.CCW) {
-                                off.setCustomProperty('Foo', 'Outer', 'yes');
+                                off.setCustomProperty('lc-qcad', 'outside', 1);
                             }
 
                             op.addObject(off, false);

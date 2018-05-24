@@ -5,6 +5,8 @@ LICENSE file in the root directory of this source tree.
 
 include('/home/zippy/lc-qcad/kdTree.js');
 
+var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
+
 (function() {
 
     var doc = getDocument();

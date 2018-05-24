@@ -3,6 +3,8 @@ This source code is licensed under the MIT license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
+
 (function () {
 
     var doc = getDocument();
@@ -153,7 +155,7 @@ LICENSE file in the root directory of this source tree.
             ent = doc.queryEntity(id);
 
         if (isPolylineEntity(ent)) {
-            if (ent.getLayerName() == 'Gravur') {
+            if (ent.getLayerName() == cfg['engraving-layer-name']) {
                 others.push(id);
 
             } else {
@@ -327,7 +329,7 @@ LICENSE file in the root directory of this source tree.
             var op = new RAddObjectOperation(blk, false);
             di.applyOperation(op);
 
-            var ref = new RBlockReferenceEntity(doc, new RBlockReferenceData(blk.getId(), new RVector(0, 0), new RVector(1, 1), 0));
+            var ref = new RBlockReferenceEntity(doc, new RBlockReferenceData(blk.getId(), new RVector(bb.minX, bb.minY), new RVector(1, 1), 0));
 
             var op2 = new RAddObjectsOperation(false);
             op2.addObject(ref);
@@ -337,9 +339,9 @@ LICENSE file in the root directory of this source tree.
                     ent = doc.queryEntity(par),
                     curr = new RVector(bbs[par].minX, bbs[par].minY);
 
-                var newPos = w < h ? new RVector(bb.minX+i*(w+2), bb.minY) : new RVector(bb.minX, bb.minY+i*(h+2));
+                var newPos = w < h ? new RVector(bb.minX+i*(w+cfg['same-sized-objects-dist']), bb.minY) : new RVector(bb.minX, bb.minY+i*(h+cfg['same-sized-objects-dist']));
 
-                var vec = newPos.operator_subtract(curr);
+                var vec = new RVector(newPos.x-curr.x-bb.minX, newPos.y-curr.y-bb.minY);
 
                 ent.setBlockId(blk.getId());
                 ent.move(vec);

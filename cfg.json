@@ -1,0 +1,11 @@
+{
+    "paper-size": [500, 750],
+    "paper-padding": 10,
+    "engraving-layer-name": "Gravur",
+    "cutting-layer-name": "Schnitt",
+    "cutting-width": 0.15,
+    "packing-padding": 3,
+    "same-sized-objects-dist": 2,
+    "gap-width": 0.5,
+    "gap-min-dist": 25
+}
