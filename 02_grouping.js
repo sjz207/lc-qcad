@@ -339,7 +339,7 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
                     ent = doc.queryEntity(par),
                     curr = new RVector(bbs[par].minX, bbs[par].minY);
 
-                var newPos = w < h ? new RVector(bb.minX+i*(w+cfg['same-sized-objects-dist']), bb.minY) : new RVector(bb.minX, bb.minY+i*(h+cfg['same-sized-objects-dist']));
+                var newPos = w < h ? new RVector(bb.minX+i*(w+cfg['equal-sized-objects-dist']), bb.minY) : new RVector(bb.minX, bb.minY+i*(h+cfg['equal-sized-objects-dist']));
 
                 var vec = new RVector(newPos.x-curr.x-bb.minX, newPos.y-curr.y-bb.minY);
 

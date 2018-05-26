@@ -50,7 +50,7 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         }
     });
 
-    var nodes = [new Node([0, 0], cfg['paper-size'][0]-cfg['paper-padding'], cfg['paper-size'][1]-cfg['paper-padding'])];
+    var nodes = [new Node([0, 0], cfg['paper-size'][0]-2*cfg['paper-padding'], cfg['paper-size'][1]-2*cfg['paper-padding'])];
 
     for (var i = 0; i < len; i++) {
         var obj = objs[i];
