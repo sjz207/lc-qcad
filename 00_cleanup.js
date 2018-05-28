@@ -11,9 +11,9 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
     var di = getDocumentInterface();
     var entities = doc.queryAllEntities();
 
-    var layA = doc.queryLayer(cfg['cutting-layer-name']);
+    var layA = doc.queryLayer('New');
     if (isNull(layA)) {
-        layA = addLayer(cfg['cutting-layer-name'], 'Black');
+        layA = addLayer('New', 'Cyan');
     }
 
     var layB = doc.queryLayer(cfg['engraving-layer-name']);

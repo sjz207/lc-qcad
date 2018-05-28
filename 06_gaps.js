@@ -390,9 +390,9 @@ function AddSideGaps (pts, infos, sides, q) {
         layB = addLayer('OBB', 'Blue');
     }
 
-    var layC = doc.queryLayer('New');
+    var layC = doc.queryLayer(cfg['cutting-layer-name']);
     if (isNull(layC)) {
-        layC = addLayer('New', 'Cyan');
+        layC = addLayer(cfg['cutting-layer-name'], 'Black');
     }
 
     var layD = doc.queryLayer(cfg['engraving-layer-name']);
