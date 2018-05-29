@@ -496,40 +496,57 @@ function AddSideGaps (pts, infos, sides, q) {
 
                 var num = pts.length;
 
-                /*var lines = [];
+                var newSegs = [];
 
-                for (var j = 0; j < num; j++) {
-                    if (R.hasOwnProperty(j)) {
-                        Array.prototype.push.apply(lines, R[j]);
-                    } else {
-                        lines.push([pts[j], pts[(j+1)%num]]);
+                if (Object.keys(R).length == 0) {
+                    var dat = segs.map(function (s) {
+                        if (isArcShape(s)) {
+                            var r = s.getRadius(),
+                                c = s.getCenter();
+                            return [r.toFixed(4), c.x.toFixed(4), c.y.toFixed(4)].join(',');
+                        } else {
+                            return '-';
+                        }
+                    }).filter(function (itm, pos, ary) {
+                        return !pos || itm != ary[pos-1];
+                    });
+
+                    if (dat.length == 1 && dat[0] != '-') {
+                        var center = segs[0].getCenter(),
+                            r = segs[0].getRadius();
+
+                        var phi = Math.asin(cfg['gap-width']/(2*r));
+
+                        var n = Math.max(1, 2*Math.PI*r/cfg['gap-min-dist']>>0);
+
+                        var ang = 2*Math.PI/n;
+
+                        for (var j = 0; j < n; j++) {
+                            var k = (j+1)%n;
+
+                            var angA = j*ang+phi,
+                                angB = k*ang-phi;
+
+                            var newArc = new RArc(center, r, angA, angB);
+
+                            newSegs.push(newArc);
+                        }
                     }
-                }
-
-                var op = new RAddObjectsOperation(false);
-
-                for (var j = 0; j < lines.length; j++) {
-                    var line = new RLine(lines[j][0], lines[j][1]);
-
-                    var lineEnt = shapeToEntity(doc, line);
-
-                    op.addObject(lineEnt);
 
                 }
 
-                di.applyOperation(op);*/
+                if (newSegs.length == 0) {
+                    var used = [];
 
-                var newSegs = [],
-                    used = [];
+                    for (var j = 0; j < num; j++) {
+                        if (R.hasOwnProperty(j)) {
+                            Array.prototype.push.apply(newSegs, R[j].map(function (r) { return new RLine(r[0], r[1]); }));
+                        } else {
+                            if (used.indexOf(pars[j]) < 0) {
+                                newSegs.push(segs[pars[j]].clone());
 
-                for (var j = 0; j < num; j++) {
-                    if (R.hasOwnProperty(j)) {
-                        Array.prototype.push.apply(newSegs, R[j].map(function (r) { return new RLine(r[0], r[1]); }));
-                    } else {
-                        if (used.indexOf(pars[j]) < 0) {
-                            newSegs.push(segs[pars[j]].clone());
-
-                            used.push(pars[j]);
+                                used.push(pars[j]);
+                            }
                         }
                     }
                 }
