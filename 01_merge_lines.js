@@ -21,7 +21,9 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         var obj = entities[i],
             ent = doc.queryEntity(obj);
 
-        if (isArcEntity(ent) || isLineEntity(ent)) {
+        if (isArcEntity(ent) || isLineEntity(ent)
+            || (isPolylineEntity(ent) && !ent.isClosed())) {
+
             var sPt = ent.getStartPoint(),
                 ePt = ent.getEndPoint();
 
@@ -62,9 +64,7 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
                     shs.push({ 'shape': sh2, 'id': near[0].obj });
 
-                    Search(shs, side, layId);
-
-                    break;
+                    return true;
 
                 }
             }
@@ -91,13 +91,13 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
                     shs.unshift({ 'shape': sh2, 'id': near[0].obj });
 
-                    Search(shs, side, layId);
-
-                    break;
+                    return true;
 
                 }
             }
         }
+
+        return false;
     }
 
     var visited = [];
@@ -108,16 +108,27 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         if (visited.indexOf(id) < 0) {
             var f = doc.queryEntity(id);
 
-            var shapes = [{ 'id': id, 'shape': f.castToShape().clone() }];
+            var shapesA = [{ 'id': id, 'shape': f.castToShape().clone() }];
 
-            Search(shapes, 'right', f.getLayerId());
-            Search(shapes, 'left', f.getLayerId());
+            while (Search(shapesA, 'right', f.getLayerId())) {};
+            while (Search(shapesA, 'left', f.getLayerId())) {};
 
-            var ids = shapes.map(function (s) { return s.id; });
+            var ids = shapesA.map(function (s) { return s.id; });
 
             Array.prototype.push.apply(visited, ids);
 
-            var newPl = new RPolyline(shapes.map(function (s) { return s.shape; }));
+            var shapesB = [];
+
+            for (var j = 0; j < shapesA.length; j++) {
+                var s = shapesA[j].shape;
+                if (isPolylineShape(s)) {
+                    Array.prototype.push.apply(shapesB, s.getExploded());
+                } else {
+                    shapesB.push(s);
+                }
+            }
+
+            var newPl = new RPolyline(shapesB);
 
             var pl = shapeToEntity(doc, newPl);
 
