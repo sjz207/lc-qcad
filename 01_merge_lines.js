@@ -21,16 +21,17 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         var obj = entities[i],
             ent = doc.queryEntity(obj);
 
-        if (isArcEntity(ent) || isLineEntity(ent)
-            || (isPolylineEntity(ent) && !ent.isClosed())) {
-
+        if (isArcEntity(ent) || isLineEntity(ent)) {
             var sPt = ent.getStartPoint(),
                 ePt = ent.getEndPoint();
 
-            pts.push({ 'x': sPt.x, 'y': sPt.y, 'obj': obj, 'end': 0 });
-            pts.push({ 'x': ePt.x, 'y': ePt.y, 'obj': obj, 'end': 1 });
+            var layId = ent.getLayerId();
+
+            pts.push({ 'x': sPt.x, 'y': sPt.y, 'obj': obj, 'end': 0, 'endPt': ePt, 'layId': layId });
+            pts.push({ 'x': ePt.x, 'y': ePt.y, 'obj': obj, 'end': 1, 'endPt': sPt, 'layId': layId });
 
             filtered.push(obj);
+
         }
     }
 
@@ -39,6 +40,141 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
     }
 
     var tree = new kdTree(pts, df, ['x', 'y']);
+
+    var dupl = [];
+
+    for (var i = 0; i < pts.length; i++) {
+        if (dupl.indexOf(pts[i].obj) < 0) {
+            var nearest = tree.nearest(pts[i], 5);
+
+            for (var j = 0; j < nearest.length; j++) {
+                if (nearest[j][1] < 1e-5
+                    && nearest[j][0].obj != pts[i].obj
+                    && dupl.indexOf(nearest[j][0].obj) < 0) {
+
+                    if (df(nearest[j][0].endPt, pts[i].endPt) < 1e-5) {
+                        var shA = doc.queryEntity(nearest[j][0].obj).castToShape(),
+                            shB = doc.queryEntity(pts[i].obj).castToShape();
+
+                        if (isArcShape(shA) && isArcShape(shB)) {
+                            if (shA.equals(shB, 1e-5)) {
+                                dupl.push(nearest[j][0].obj);
+                            }
+
+                        } else {
+                            dupl.push(nearest[j][0].obj);
+                        }
+
+                    }
+                }
+            }
+        }
+
+    }
+
+    function GetAng (a, b) {
+        var ang = Math.atan2(a.x*b.y-b.x*a.y, a.x*b.x+a.y*b.y);
+        if (ang < 0) {
+            ang += 2*Math.PI;
+        }
+        return ang;
+    }
+
+    function Mod (a, b) {
+        return ((a%b)+b)%b;
+    }
+
+    var skip = [];
+
+    for (var i = 0; i < pts.length; i++) {
+        if (skip.indexOf(i) < 0 && dupl.indexOf(pts[i].obj) < 0) {
+
+            var nearest = tree.nearest(pts[i], 5);
+
+            var objs = nearest.filter(function (p) {
+                return dupl.indexOf(p[0].obj) < 0
+                    && p[0].obj != pts[i].obj
+                    && p[1] < 1e-5
+                    && pts[i].layId == p[0].layId;
+            });
+
+            if (objs.length > 1) {
+                throw new Error('Ambiguous connection found at coordinate [' + pts[i].x + ', ' + pts[i].y + '].');
+
+            } else if (objs.length == 1) {
+
+                var obj = doc.queryEntity(objs[0][0].obj),
+                    sh = obj.castToShape();
+
+                if (isLineEntity(obj)) {
+                    if (objs[0][0].end == 0) {
+                        obj.setStartPoint(new RVector(pts[i].x, pts[i].y));
+                    } else {
+                        obj.setEndPoint(new RVector(pts[i].x, pts[i].y));
+                    }
+
+                } else {
+                    // Arc
+
+                    var phi = Mod(obj.getEndAngle()-obj.getStartAngle(), 2*Math.PI);
+
+                    if (obj.isReversed()) {
+                        phi = 2*Math.PI-phi;
+                    }
+
+                    phi /= 2;
+
+                    if (objs[0][0].end == 1) {
+                        var pt = obj.getStartPoint();
+                    } else {
+                        var pt = obj.getEndPoint();
+                    }
+
+                    var v = new RVector(pt.x-pts[i].x, pt.y-pts[i].y),
+                        l = v.getMagnitude()/2;
+
+                    v.normalize();
+
+                    var d = l/Math.tan(phi);
+
+                    var f = (objs[0][0].end == 0 ^ obj.isReversed()) ? 1 : -1;
+
+                    var c = new RVector(pts[i].x+l*v.x-f*d*v.y, pts[i].y+l*v.y+f*d*v.x);
+
+                    var vA = new RVector(pts[i].x-c.x, pts[i].y-c.y),
+                        vB = new RVector(pt.x-c.x, pt.y-c.y);
+
+                    var r = vA.getMagnitude();
+
+                    vA.normalize();
+                    vB.normalize();
+
+                    var x = new RVector(1, 0);
+
+                    var angA = GetAng(x, vA),
+                        angB = GetAng(x, vB);
+
+                    sh.setCenter(c);
+                    sh.setRadius(r);
+
+                    if (objs[0][0].end == 0) {
+                        sh.setStartAngle(angA);
+                        sh.setEndAngle(angB);
+                    } else {
+                        sh.setEndAngle(angA);
+                        sh.setStartAngle(angB);
+                    }
+
+                }
+
+                var op = new RModifyObjectOperation(obj, false);
+                di.applyOperation(op);
+
+                skip.push(pts.indexOf(objs[0][0]));
+
+            }
+        }
+    }
 
     function Search (shs, side, layId) {
         if (side == 'right') {
@@ -49,14 +185,14 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
             for (var i = 0; i < nearest.length; i++) {
                 var near = nearest[i];
 
-                var ent = doc.queryEntity(near[0].obj);
-
                 if (near[1] < 1e-5
                     && near[0].obj != sh.id
                     && near[0].obj != shs[0].id
-                    && layId == ent.getLayerId()) {
+                    && dupl.indexOf(near[0].obj) < 0
+                    && layId == near[0].layId) {
 
-                    var sh2 = ent.castToShape().clone();
+                    var ent = doc.queryEntity(near[0].obj),
+                        sh2 = ent.castToShape().clone();
 
                     if (near[0].end == 1) {
                         sh2.reverse();
@@ -76,14 +212,14 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
             for (var i = 0; i < nearest.length; i++) {
                 var near = nearest[i];
 
-                var ent = doc.queryEntity(near[0].obj);
-
                 if (near[1] < 1e-5
                     && near[0].obj != sh.id
                     && near[0].obj != shs[shs.length-1].id
-                    && layId == ent.getLayerId()) {
+                    && dupl.indexOf(near[0].obj) < 0
+                    && layId == near[0].layId) {
 
-                    var sh2 = ent.castToShape().clone();
+                    var ent = doc.queryEntity(near[0].obj),
+                        sh2 = ent.castToShape().clone();
 
                     if (near[0].end == 0) {
                         sh2.reverse();
@@ -105,41 +241,33 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
     for (var i = 0; i < filtered.length; i++) {
         var id = filtered[i];
 
-        if (visited.indexOf(id) < 0) {
+        if (visited.indexOf(id) < 0
+            && dupl.indexOf(id) < 0) {
+
             var f = doc.queryEntity(id);
 
-            var shapesA = [{ 'id': id, 'shape': f.castToShape().clone() }];
+            var shapes = [{ 'id': id, 'shape': f.castToShape().clone() }];
 
-            while (Search(shapesA, 'right', f.getLayerId())) {};
-            while (Search(shapesA, 'left', f.getLayerId())) {};
+            while (Search(shapes, 'right', f.getLayerId())) {};
+            while (Search(shapes, 'left', f.getLayerId())) {};
 
-            var ids = shapesA.map(function (s) { return s.id; });
+            var ids = shapes.map(function (s) { return s.id; });
 
             Array.prototype.push.apply(visited, ids);
 
-            var shapesB = [];
-
-            for (var j = 0; j < shapesA.length; j++) {
-                var s = shapesA[j].shape;
-                if (isPolylineShape(s)) {
-                    Array.prototype.push.apply(shapesB, s.getExploded());
-                } else {
-                    shapesB.push(s);
-                }
-            }
-
-            var newPl = new RPolyline(shapesB);
+            var newPl = new RPolyline(shapes.map(function (s) { return s.shape; }));
 
             var pl = shapeToEntity(doc, newPl);
 
             pl.copyAttributesFrom(f.data());
 
-            var op = new RAddObjectsOperation(false);
-            op.addObject(pl, false);
+            var op = new RAddObjectOperation(pl, false, false);
             di.applyOperation(op);
 
         }
     }
+
+    Array.prototype.push.apply(visited, dupl);
 
     var op = new RDeleteObjectsOperation(false);
     for (var i = 0; i < visited.length; i++) {

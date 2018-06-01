@@ -54,6 +54,25 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
     for (var i = 0; i < blocks.length; i++) {
         var ent = doc.queryEntity(blocks[i]);
 
+        var pos = ent.getPosition();
+        var rot = ent.getRotation();
+
+        var itms = doc.queryBlockEntities(ent.getReferencedBlockId());
+
+        var op2 = new RModifyObjectsOperation(false);
+
+        for (var j = 0; j < itms.length; j++) {
+            var itm = doc.queryEntity(itms[j]);
+            itm.rotate(rot);
+            itm.move(pos);
+
+            op2.addObject(itm, false);
+        }
+
+        di.applyOperation(op2);
+
+        ent.setPosition(new RVector(0, 0));
+        ent.setRotation(0);
         ent.setLayerId(doc.getLayer0Id());
         op.addObject(ent);
     }
@@ -90,9 +109,33 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
     di.applyOperation(op);
 
+    // löst die polylines auf
+
+    var op = new RAddObjectsOperation(false);
+
+    var plines = doc.queryAllEntities(false, true, RS.EntityPolyline);
+
+    for (var i = 0; i < plines.length; i++) {
+        var ent = doc.queryEntity(plines[i]),
+            sh = ent.castToShape();;
+
+        var expl = sh.getExploded();
+
+        for (var j = 0; j < expl.length; j++) {
+            var newEnt = shapeToEntity(doc, expl[j].clone());
+            newEnt.copyAttributesFrom(ent.data());
+            op.addObject(newEnt, false);
+        }
+
+        op.deleteObject(ent);
+
+    }
+
+    di.applyOperation(op);
+
     var op = new RModifyObjectsOperation(false);
 
-    var rest = doc.queryAllEntities(false, true, [RS.EntityArc, RS.EntityPolyline, RS.EntityLine]);
+    var rest = doc.queryAllEntities(false, true, [RS.EntityArc, RS.EntityLine]);
 
     for (var i = 0; i < rest.length; i++) {
         var ent = doc.queryEntity(rest[i]);
@@ -105,48 +148,14 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
     var op = new RAddObjectsOperation(false);
 
-    var lines = doc.queryAllEntities(false, true, [RS.EntityPolyline, RS.EntityLine]);
+    var lines = doc.queryAllEntities(false, true, RS.EntityLine);
 
     for (var i = 0; i < lines.length; i++) {
         var ent = doc.queryEntity(lines[i]),
             sh = ent.castToShape();
 
-        if (isLineEntity(ent)) {
-            if (sh.getLength() < .1) {
-                op.deleteObject(ent);
-            }
-
-        } else {
-
-            var expl = sh.getExploded().filter(function (s) { return isArcShape(s) || s.getLength() > .1; });
-
-            var n = expl.length;
-
-            if (n > 1) {
-                for (var j = 0; j < n; j++) {
-                    if (isLineShape(expl[j])) {
-                        var pre = expl[(j+n-1)%n],
-                            nxt = expl[(j+1)%n];
-
-                        if (expl[j].getStartPoint().equalsFuzzy(pre.getEndPoint(), .1)) {
-                            expl[j].setStartPoint(pre.getEndPoint());
-                        }
-
-                        if (expl[j].getEndPoint().equalsFuzzy(nxt.getStartPoint(), .1)) {
-                            expl[j].setEndPoint(nxt.getStartPoint());
-                        }
-                    }
-                }
-            }
-
-            var newPl = new RPolyline(expl);
-            var newEnt = shapeToEntity(doc, newPl);
-
-            newEnt.copyAttributesFrom(ent.data());
-
-            op.addObject(newEnt, false);
+        if (sh.getLength() < .1) {
             op.deleteObject(ent);
-
         }
 
     }
