@@ -6,6 +6,7 @@ LICENSE file in the root directory of this source tree.
 var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
 (function() {
+    var before = Date.now();
 
     var doc = getDocument();
     var di = getDocumentInterface();
@@ -18,6 +19,8 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
     var entities = doc.queryAllEntities();
 
+    var op = new RAddObjectsOperation(false);
+
     for (var i = 0; i < entities.length; i++) {
         var ent = doc.queryEntity(entities[i]);
 
@@ -25,6 +28,8 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
             var itms = doc.queryBlockEntities(ent.getReferencedBlockId());
 
             var filtered = [];
+
+            var op2 = new RModifyObjectsOperation(false);
 
             for (var j = 0; j < itms.length; j++) {
                 var itmA = doc.queryEntity(itms[j]),
@@ -53,17 +58,16 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
                     if (c > 0 ^ shA.getOrientation() == RS.CW) {
                         // richtung umkehren
 
-                        var op = new RModifyObjectsOperation(false);
-
                         itmA.reverse();
-                        op.addObject(itmA, false);
-                        di.applyOperation(op);
+                        op2.addObject(itmA, false);
                     }
 
                     filtered.push(itmA);
                 }
 
             }
+
+            di.applyOperation(op2);
 
             // mit workaround
 
@@ -85,7 +89,6 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
                         expl.push(expl.shift());
 
                     } else {
-                        var op = new RAddObjectsOperation(false);
 
                         for (var k = 0; k < offs.length; k++) {
                             var off = shapeToEntity(doc, offs[k].data());
@@ -100,8 +103,6 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
                             op.addObject(off, false);
                         }
 
-                        di.applyOperation(op);
-
                         break;
                     }
 
@@ -110,5 +111,9 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
             }
         }
     }
+
+    di.applyOperation(op);
+
+    qDebug((Date.now()-before)/1e3, 's');
 
 })();

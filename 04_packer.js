@@ -6,6 +6,7 @@ LICENSE file in the root directory of this source tree.
 var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
 (function() {
+    var before = Date.now();
 
     var doc = getDocument();
     var di = getDocumentInterface();
@@ -106,19 +107,13 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         }
     }
 
+    var block = new RBlock(doc, 'BB', new RVector(0, 0));
+
+    op.addObject(block, false);
+
     di.applyOperation(op);
 
     var op2 = new RAddObjectsOperation(false);
-
-    var block = new RBlock(doc, 'BB', new RVector(0, 0));
-    op2.addObject(block);
-    di.applyOperation(op2);
-
-    var id = doc.getBlockId('BB');
-
-    var op3 = new RAddObjectsOperation(false);
-
-    di.setCurrentBlock('BB');
 
     for (var i = 0; i < nodes.length; i++) {
         var node = nodes[i];
@@ -127,16 +122,15 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         var box = new RBox(a, b);
         var box_ = new RPolylineEntity(doc, new RPolylineData());
         box_.setShape(box.getPolyline2d());
-        op3.addObject(box_);
+        box_.setBlockId(block.getId());
+        op2.addObject(box_, false);
     }
 
-    di.applyOperation(op3);
+    var br = new RBlockReferenceEntity(doc, new RBlockReferenceData(block.getId(), new RVector(0, 0), new RVector(1, 1), 0));
+    op2.addObject(br, false);
 
-    di.setCurrentBlock(RBlock.modelSpaceName);
+    di.applyOperation(op2);
 
-    var br = new RBlockReferenceEntity(doc, new RBlockReferenceData(id, new RVector(0, 0), new RVector(1, 1), 0));
-
-    op4 = new RAddObjectOperation(br);
-    di.applyOperation(op4);
+    qDebug((Date.now()-before)/1e3, 's');
 
 })();

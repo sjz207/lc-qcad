@@ -374,6 +374,7 @@ function AddSideGaps (pts, infos, sides, q) {
 }
 
 (function() {
+    var before = Date.now();
 
     var doc = getDocument();
     var di = getDocumentInterface();
@@ -396,6 +397,8 @@ function AddSideGaps (pts, infos, sides, q) {
     }
 
     var layD = doc.queryLayer(cfg['engraving-layer-name']);
+
+    var op = new RAddObjectsOperation(false);
 
     var i;
 
@@ -551,29 +554,21 @@ function AddSideGaps (pts, infos, sides, q) {
                     }
                 }
 
-                var op = new RAddObjectsOperation(false);
-
                 for (var j = 0; j < newSegs.length; j++) {
                     var newEnt = shapeToEntity(doc, newSegs[j]);
                     newEnt.setLayerId(layC.getId());
                     op.addObject(newEnt, false);
                 }
 
-                di.applyOperation(op);
-
                 // darstellung
 
                 cxEnt.setLayerId(layA.getId());
                 obbEnt.setLayerId(layB.getId());
 
-                var op2 = new RAddObjectsOperation(false);
-                op2.addObject(cxEnt, false);
-                op2.addObject(obbEnt, false);
-                di.applyOperation(op2);
+                op.addObject(cxEnt, false);
+                op.addObject(obbEnt, false);
 
             } else {
-
-                var op = new RAddObjectsOperation(false);
 
                 var expl = ent.getExploded();
 
@@ -582,17 +577,18 @@ function AddSideGaps (pts, infos, sides, q) {
                     newEnt.setLayerId(layName == cfg['engraving-layer-name'] ? layD.getId() : layC.getId());
                     op.addObject(newEnt, false);
                 }
-                di.applyOperation(op);
 
             }
 
             // testweise
 
-            var op3 = new RDeleteObjectsOperation(false);
-            op3.deleteObject(ent);
-            di.applyOperation(op3);
+            op.deleteObject(ent);
 
         }
     }
+
+    di.applyOperation(op);
+
+    qDebug((Date.now()-before)/1e3, 's');
 
 })();

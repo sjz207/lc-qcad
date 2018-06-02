@@ -6,6 +6,7 @@ LICENSE file in the root directory of this source tree.
 var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
 (function() {
+    var before = Date.now();
 
     var doc = getDocument();
     var di = getDocumentInterface();
@@ -14,6 +15,8 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
     var model = doc.getModelSpaceBlockId();
 
     // löst die blöcke auf
+
+    var op = new RModifyObjectsOperation(false);
 
     for (var i = 0; i < blocks.length; i++) {
         var b = doc.queryEntity(blocks[i]);
@@ -26,7 +29,6 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
         var itms = doc.queryBlockEntities(b.getReferencedBlockId());
 
-        var op = new RModifyObjectsOperation(false);
         for (var j = 0; j < itms.length; j++) {
             var itm = doc.queryEntity(itms[j]);
             itm.setBlockId(model);
@@ -35,14 +37,14 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
             op.addObject(itm, false);
         }
-        di.applyOperation(op);
 
         // löscht den block
-
-        var op2 = new RDeleteObjectsOperation(false);
-        op2.deleteObject(doc.queryBlock(b.getReferencedBlockId()));
-        di.applyOperation(op2);
+        op.deleteObject(doc.queryBlock(b.getReferencedBlockId()));
 
     }
+
+    di.applyOperation(op);
+
+    qDebug((Date.now()-before)/1e3, 's');
 
 })();

@@ -317,55 +317,58 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
     var c = 0;
 
+    var blocks = {};
+
+    var op = new RAddObjectsOperation(false);
+
     for (var s in sizes) {
-        if (sizes.hasOwnProperty(s)) {
-            var pars = sizes[s],
-                bb = bbs[pars[0]],
-                w = bb.maxX-bb.minX,
-                h = bb.maxY-bb.minY;
+        var blk = new RBlock(doc, 'B' + c++, new RVector(0, 0));
+        op.addObject(blk, false);
+        blocks[s] = blk;
+    }
 
-            var blk = new RBlock(doc, 'B' + c, new RVector(0, 0));
+    di.applyOperation(op);
 
-            var op = new RAddObjectOperation(blk, false);
-            di.applyOperation(op);
+    var op2 = new RAddObjectsOperation(false);
 
-            var ref = new RBlockReferenceEntity(doc, new RBlockReferenceData(blk.getId(), new RVector(bb.minX, bb.minY), new RVector(1, 1), 0));
+    for (var s in sizes) {
+        var pars = sizes[s],
+            bb = bbs[pars[0]],
+            w = bb.maxX-bb.minX,
+            h = bb.maxY-bb.minY;
 
-            var op2 = new RAddObjectsOperation(false);
-            op2.addObject(ref);
+        var ref = new RBlockReferenceEntity(doc, new RBlockReferenceData(blocks[s].getId(), new RVector(bb.minX, bb.minY), new RVector(1, 1), 0));
 
-            for (var i = 0; i < pars.length; i++) {
-                var par = pars[i],
-                    ent = doc.queryEntity(par),
-                    curr = new RVector(bbs[par].minX, bbs[par].minY);
+        op2.addObject(ref, false);
 
-                var newPos = w < h ? new RVector(bb.minX+i*(w+cfg['equal-sized-objects-dist']), bb.minY) : new RVector(bb.minX, bb.minY+i*(h+cfg['equal-sized-objects-dist']));
+        for (var i = 0; i < pars.length; i++) {
+            var par = pars[i],
+                ent = doc.queryEntity(par),
+                curr = new RVector(bbs[par].minX, bbs[par].minY);
 
-                var vec = new RVector(newPos.x-curr.x-bb.minX, newPos.y-curr.y-bb.minY);
+            var newPos = w < h ? new RVector(bb.minX+i*(w+cfg['equal-sized-objects-dist']), bb.minY) : new RVector(bb.minX, bb.minY+i*(h+cfg['equal-sized-objects-dist']));
 
-                ent.setBlockId(blk.getId());
-                ent.move(vec);
+            var vec = new RVector(newPos.x-curr.x-bb.minX, newPos.y-curr.y-bb.minY);
 
-                op2.addObject(ent, false);
+            ent.setBlockId(blocks[s].getId());
+            ent.move(vec);
 
-                if (childs.hasOwnProperty(par)) {
-                    for (var j = 0; j < childs[par].length; j++) {
-                        var inner = doc.queryEntity(childs[par][j]);
+            op2.addObject(ent, false);
 
-                        inner.setBlockId(blk.getId());
-                        inner.move(vec);
+            if (childs.hasOwnProperty(par)) {
+                for (var j = 0; j < childs[par].length; j++) {
+                    var inner = doc.queryEntity(childs[par][j]);
 
-                        op2.addObject(inner, false);
-                    }
+                    inner.setBlockId(blocks[s].getId());
+                    inner.move(vec);
+
+                    op2.addObject(inner, false);
                 }
-
             }
-
-            di.applyOperation(op2);
-
-            c++;
 
         }
     }
+
+    di.applyOperation(op2);
 
 })();
