@@ -20,7 +20,7 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
     for (var i = 0; i < entities.length; i++) {
         var obj = entities[i],
-            ent = doc.queryEntityDirect(obj);
+            ent = doc.queryEntity(obj);
 
         if (isArcEntity(ent) || isLineEntity(ent)) {
             var sPt = ent.getStartPoint(),
@@ -58,8 +58,8 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
                     && dupl.indexOf(nearest[j][0].obj) < 0) {
 
                     if (df(nearest[j][0].endPt, pts[i].endPt) < 1e-5) {
-                        var shA = doc.queryEntityDirect(nearest[j][0].obj).castToShape(),
-                            shB = doc.queryEntityDirect(pts[i].obj).castToShape();
+                        var shA = doc.queryEntity(nearest[j][0].obj).castToShape(),
+                            shB = doc.queryEntity(pts[i].obj).castToShape();
 
                         if (isArcShape(shA) && isArcShape(shB)) {
                             if (shA.equals(shB, 1e-5)) {
@@ -108,7 +108,7 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
             } else if (objs.length == 1) {
 
-                var obj = doc.queryEntityDirect(objs[0][0].obj),
+                var obj = doc.queryEntity(objs[0][0].obj),
                     sh = obj.castToShape();
 
                 if (isLineEntity(obj)) {
@@ -185,7 +185,7 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         if (side == 'right') {
             var sh = shs[shs.length-1];
             var pt = sh.shape.getEndPoint();
-            var nearest = tree.nearest({ 'x': pt.x, 'y': pt.y }, 2);
+            var nearest = tree.nearest({ 'x': pt.x, 'y': pt.y }, 5);
 
             for (var i = 0; i < nearest.length; i++) {
                 var near = nearest[i];
@@ -196,7 +196,7 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
                     && dupl.indexOf(near[0].obj) < 0
                     && layId == near[0].layId) {
 
-                    var ent = doc.queryEntityDirect(near[0].obj),
+                    var ent = doc.queryEntity(near[0].obj),
                         sh2 = ent.castToShape().clone();
 
                     if (near[0].end == 1) {
@@ -212,7 +212,7 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         } else {
             var sh = shs[0];
             var pt = sh.shape.getStartPoint();
-            var nearest = tree.nearest({ 'x': pt.x, 'y': pt.y }, 2);
+            var nearest = tree.nearest({ 'x': pt.x, 'y': pt.y }, 5);
 
             for (var i = 0; i < nearest.length; i++) {
                 var near = nearest[i];
@@ -223,7 +223,7 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
                     && dupl.indexOf(near[0].obj) < 0
                     && layId == near[0].layId) {
 
-                    var ent = doc.queryEntityDirect(near[0].obj),
+                    var ent = doc.queryEntity(near[0].obj),
                         sh2 = ent.castToShape().clone();
 
                     if (near[0].end == 0) {
@@ -251,7 +251,7 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         if (visited.indexOf(id) < 0
             && dupl.indexOf(id) < 0) {
 
-            var f = doc.queryEntityDirect(id);
+            var f = doc.queryEntity(id);
 
             var shapes = [{ 'id': id, 'shape': f.castToShape().clone() }];
 
@@ -276,7 +276,7 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
     Array.prototype.push.apply(visited, dupl);
 
     for (var i = 0; i < visited.length; i++) {
-        op.deleteObject(doc.queryEntityDirect(visited[i]));
+        op.deleteObject(doc.queryEntity(visited[i]));
     }
 
     di.applyOperation(op);
