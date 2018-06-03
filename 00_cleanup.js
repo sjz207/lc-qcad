@@ -16,27 +16,6 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         layA = addLayer('New', 'Cyan');
     }
 
-    var layB = doc.queryLayer(cfg['engraving-layer-name']);
-
-    var op = new RDeleteObjectsOperation(false);
-
-    var hatches = doc.queryAllEntities(false, true, RS.EntityHatch);
-
-    for (var i = 0; i < hatches.length; i++) {
-        op.deleteObject(doc.queryEntity(hatches[i]));
-    }
-
-    di.applyOperation(op);
-
-    var op = new RModifyObjectsOperation(false);
-
-    if (!isNull(layB)) {
-        layB.setLineweight(RLineweight.Weight000);
-        layB.setColor(new RColor('Red'));
-
-        op.addObject(layB, false);
-    }
-
     function SetStyle (itm) {
         if (itm.getLayerName() != cfg['engraving-layer-name']) {
             itm.setLayerId(layA.getId());
@@ -46,37 +25,124 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         itm.setColor(new RColor(RColor.ByLayer));
     }
 
-    // verschiebt die blöcke auf die 0
+    var op = new RDeleteObjectsOperation(false);
 
-    var blocks = doc.queryAllBlockReferences();
+    var all = doc.queryAllEntities(false, true);
 
-    for (var i = 0; i < blocks.length; i++) {
-        var ent = doc.queryEntity(blocks[i]);
-
-        var pos = ent.getPosition();
-        var rot = ent.getRotation();
-
-        var itms = doc.queryBlockEntities(ent.getReferencedBlockId());
-
-        for (var j = 0; j < itms.length; j++) {
-            var itm = doc.queryEntity(itms[j]);
-
-            itm.rotate(rot);
-            itm.move(pos);
-
-            SetStyle(itm);
-
-            op.addObject(itm, false);
+    for (var i = 0; i < all.length; i++) {
+        var ent = doc.queryEntity(all[i]);
+        if (isDimensionEntity(ent) || isHatchEntity(ent) || isPointEntity(ent) || isXLineEntity(ent) || isRayEntity(ent) || isTextEntity(ent)) {
+            op.deleteObject(ent);
         }
-
-        ent.setPosition(new RVector(0, 0));
-        ent.setRotation(0);
-        ent.setLayerId(doc.getLayer0Id());
-
-        op.addObject(ent, false);
     }
 
-    var all = doc.queryAllEntities(false, false, [RS.EntityArc, RS.EntityLine, RS.EntityCircle, RS.EntityPolyline]);
+    di.applyOperation(op);
+
+    var op = new RModifyObjectsOperation(false);
+
+    var layB = doc.queryLayer(cfg['engraving-layer-name']);
+
+    if (!isNull(layB)) {
+        layB.setLineweight(RLineweight.Weight000);
+        layB.setColor(new RColor('Red'));
+
+        op.addObject(layB, false);
+    }
+
+    di.applyOperation(op);
+
+    var refs = doc.queryAllBlockReferences();
+
+    var op = new RAddObjectsOperation(false);
+
+    var blocks = {},
+        usedIds = [],
+        t = 0;
+
+    for (var i = 0; i < refs.length; i++) {
+        var ref = doc.queryEntity(refs[i]),
+            blockId = ref.getReferencedBlockId(),
+            block = doc.queryBlock(blockId);
+
+        if (usedIds.indexOf(blockId) < 0) {
+            blocks[refs[i]] = block;
+            usedIds.push(blockId);
+        } else {
+            var newBlock = new RBlock(doc, 'Cpy' + t, block.getOrigin());
+            blocks[refs[i]] = newBlock;
+            op.addObject(newBlock, false);
+            t++;
+        }
+
+    }
+
+    di.applyOperation(op);
+
+    var op = new RModifyObjectsOperation(false);
+
+    // verschiebt die block-referenzen auf die 0 und kopiert mehrfach verwendete blöcke, sodass jede referenz auf eine kopie des blocks verweist
+
+    for (var i = 0; i < refs.length; i++) {
+        var ref = doc.queryEntity(refs[i]),
+            blockId = ref.getReferencedBlockId(),
+            block = doc.queryBlock(blockId);
+
+        var pos = ref.getPosition(),
+            rot = ref.getRotation();
+
+        var itms = doc.queryBlockEntities(blockId);
+
+        var newId = blocks[refs[i]].getId();
+
+        for (var j = 0; j < itms.length; j++) {
+            var itm = doc.queryEntity(itms[j]),
+                sh = itm.castToShape();
+
+            if (blockId == newId) {
+                itm.rotate(rot);
+                itm.move(pos);
+
+                SetStyle(itm);
+
+                op.addObject(itm, false);
+
+            } else {
+                // kopiert
+
+                var newItm = shapeToEntity(doc, sh.clone());
+                newItm.setBlockId(newId);
+                newItm.copyAttributesFrom(itm.data(), false);
+
+                newItm.rotate(rot);
+                newItm.move(pos);
+
+                SetStyle(newItm);
+
+                op.addObject(newItm, false);
+
+            }
+
+        }
+
+        if (blockId != newId) {
+            ref.setReferencedBlockId(newId);
+        }
+
+        ref.setPosition(new RVector(0, 0));
+        ref.setRotation(0);
+        ref.setLayerId(doc.getLayer0Id());
+
+        op.addObject(ref, false);
+
+    }
+
+    di.applyOperation(op);
+
+    // vereinheitlicht die attribute
+
+    var op = new RModifyObjectsOperation(false);
+
+    var all = doc.queryAllEntities(false, false, [RS.EntityArc, RS.EntityLine, RS.EntityCircle, RS.EntityPolyline, RS.EntityEllipse]);
 
     for (var i = 0; i < all.length; i++) {
         var ent = doc.queryEntity(all[i]);
@@ -90,7 +156,7 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
     var op = new RAddObjectsOperation(false);
 
-    var other = doc.queryAllEntities(false, true, [RS.EntityCircle, RS.EntityPolyline]);
+    var other = doc.queryAllEntities(false, true, [RS.EntityCircle, RS.EntityPolyline, RS.EntityEllipse]);
 
     for (var i = 0; i < other.length; i++) {
         var ent = doc.queryEntity(other[i]),
@@ -115,7 +181,17 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
             op.deleteObject(ent);
 
         } else {
-            var expl = sh.getExploded();
+            var expl = [];
+
+            if (isEllipseEntity(ent)) {
+                var splines = sh.approximateWithSplines();
+
+                for (var j = 0; j < splines.length; j++) {
+                    Array.prototype.push.apply(expl, splines[j].approximateWithArcs(.5).getExploded());
+                }
+            } else {
+                expl = sh.getExploded();
+            }
 
             for (var j = 0; j < expl.length; j++) {
                 var newEnt = shapeToEntity(doc, expl[j].clone());
@@ -152,12 +228,23 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
     var op = new RDeleteObjectsOperation(false);
 
-    var layers = doc.queryAllLayers();
+    var lays = doc.queryAllLayers();
 
-    for (var i = 0; i < layers.length; i++) {
-        if (doc.queryLayerEntities(layers[i], true).length == 0
-            && layers[i] != doc.getLayer0Id()) {
-            op.deleteObject(doc.queryLayer(layers[i]));
+    for (var i = 0; i < lays.length; i++) {
+        if (doc.queryLayerEntities(lays[i], true).length == 0
+            && lays[i] != doc.getLayer0Id()) {
+            op.deleteObject(doc.queryLayer(lays[i]));
+        }
+    }
+
+    // löscht leere blöcke
+
+    var blocks = doc.queryAllBlocks();
+
+    for (var i = 0; i < blocks.length; i++) {
+        if (doc.queryBlockEntities(blocks[i]).length == 0
+            && blocks[i] != doc.getModelSpaceBlockId()) {
+            op.deleteObject(doc.queryBlock(blocks[i]));
         }
     }
 

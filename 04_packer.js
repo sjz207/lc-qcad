@@ -113,6 +113,8 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
     di.applyOperation(op);
 
+    doc.setCurrentLayer(doc.getLayer0Id());
+
     var op2 = new RAddObjectsOperation(false);
 
     for (var i = 0; i < nodes.length; i++) {
@@ -120,13 +122,14 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         var a = new RVector(node.pos[0], node.pos[1]),
             b = new RVector(node.pos[0]+node.w, node.pos[1]+node.h);
         var box = new RBox(a, b);
-        var box_ = new RPolylineEntity(doc, new RPolylineData());
-        box_.setShape(box.getPolyline2d());
-        box_.setBlockId(block.getId());
-        op2.addObject(box_, false);
+        var _box = new RPolylineEntity(doc, new RPolylineData());
+        _box.setShape(box.getPolyline2d());
+        _box.setBlockId(block.getId());
+        op2.addObject(_box, false);
     }
 
     var br = new RBlockReferenceEntity(doc, new RBlockReferenceData(block.getId(), new RVector(0, 0), new RVector(1, 1), 0));
+    br.setBlockId(doc.getModelSpaceBlockId());
     op2.addObject(br, false);
 
     di.applyOperation(op2);
