@@ -224,6 +224,28 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
     di.applyOperation(op);
 
+    // löscht leere oder nicht genutzte blöcke
+
+    var op = new RDeleteObjectsOperation(false);
+
+    var usedIds = [];
+
+    for (var i = 0; i < refs.length; i++) {
+        var ref = doc.queryEntity(refs[i]);
+        usedIds.push(ref.getReferencedBlockId());
+    }
+
+    var blocks = doc.queryAllBlocks();
+
+    for (var i = 0; i < blocks.length; i++) {
+        if ((doc.queryBlockEntities(blocks[i]).length == 0 || usedIds.indexOf(blocks[i]) < 0)
+            && blocks[i] != doc.getModelSpaceBlockId()) {
+            op.deleteObject(doc.queryBlock(blocks[i]));
+        }
+    }
+
+    di.applyOperation(op);
+
     // löscht leere layer
 
     var op = new RDeleteObjectsOperation(false);
@@ -234,17 +256,6 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         if (doc.queryLayerEntities(lays[i], true).length == 0
             && lays[i] != doc.getLayer0Id()) {
             op.deleteObject(doc.queryLayer(lays[i]));
-        }
-    }
-
-    // löscht leere blöcke
-
-    var blocks = doc.queryAllBlocks();
-
-    for (var i = 0; i < blocks.length; i++) {
-        if (doc.queryBlockEntities(blocks[i]).length == 0
-            && blocks[i] != doc.getModelSpaceBlockId()) {
-            op.deleteObject(doc.queryBlock(blocks[i]));
         }
     }
 

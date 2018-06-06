@@ -263,7 +263,7 @@ function GetInfos (pts, cx, obb) {
 
         var nxt = cx[i];
 
-        var info = { 'side': ax > ay ? (x > 0 ? 'A' : 'C') : (y > 0 ? 'B' : 'D'), 'ids': [nxt], 'l': v.getMagnitude() };
+        var info = { 'side': ax > ay ? (x > 0 ? 'A' : 'C') : (y > 0 ? 'B' : 'D'), 'ids': [nxt], 'v': v.getNormalized(), 'l': v.getMagnitude() };
 
         var c = 0;
 
@@ -358,13 +358,67 @@ function AddSideGaps (pts, infos, sides, q) {
                 AddGaps(pts, info.ids, q, true);
 
             } else {
+                var r = {};
+
                 var n = info.ids.length/2;
 
                 for (var j = 0; j < n; j++) {
                     var e = info.ids[2*j],
                         f = info.ids[2*j+1];
 
-                    AddGaps(pts, [e, f], q, false);
+                    AddGaps(pts, [e, f], r, false);
+                }
+
+                var homog = Object.keys(r).map(function (k) { r[k].length == 2; });
+
+                if (homog.indexOf(false) < 0
+                    && homog.length > 2) {
+
+                    var mids = [];
+
+                    var v = info.v.operator_multiply(cfg['gap-width']/2);
+
+                    for (var k in r) {
+                        var w = r[k][0][1].operator_subtract(pts[info.ids[0]]).operator_add(v);
+
+                        mids.push({'k': k, 'x': w.getMagnitude()});
+                    }
+
+                    var l = info.l;
+                    var n = Math.max(2, l/cfg['gap-min-dist']>>0);
+
+                    var h = l/n/2;
+
+                    var des = [];
+
+                    var i2, j2;
+
+                    for (i2 = 0; i2 < n; i2++) {
+                        des.push(h+2*i2*h);
+                    }
+
+                    for (i2 = 0; i2 < n; i2++) {
+                        var sn = [];
+                        for (j2 = 0; j2 < mids.length; j2++) {
+                            var d = Math.abs(mids[j2].x-des[i2]);
+
+                            if (d < h+1e-5) {
+                                sn.push([d, j2]);
+                            }
+                        }
+
+                        sn.sort(function (a, b) { return a[0]-b[0]; });
+
+                        for (j2 = 1; j2 < sn.length; j2++) {
+                            delete r[mids[sn[j2][1]].k];
+                        }
+
+                    }
+
+                }
+
+                for (var k in r) {
+                    q[k] = r[k];
                 }
             }
         }

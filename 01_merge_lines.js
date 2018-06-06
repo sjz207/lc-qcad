@@ -42,15 +42,11 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
     var tree = new kdTree(pts, df, ['x', 'y']);
 
-    for (var i = 0; i < pts.length; i++) {
-        pts[i].i = i;
-    }
-
     var dupl = [];
 
     for (var i = 0; i < pts.length; i++) {
         if (dupl.indexOf(pts[i].obj) < 0) {
-            var nearest = tree.nearest(pts[i], 5);
+            var nearest = tree.nearest(pts[i], 20);
 
             for (var j = 0; j < nearest.length; j++) {
                 if (nearest[j][1] < 1e-5
@@ -77,6 +73,26 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
     }
 
+    var op = new RDeleteObjectsOperation(false);
+
+    for (var i = 0; i < dupl.length; i++) {
+        op.deleteObject(doc.queryEntity(dupl[i]));
+    }
+
+    di.applyOperation(op);
+
+    var pts2 = pts.filter(function (p) { return dupl.indexOf(p.obj) < 0; });
+
+    filtered = pts2.map(function (p) { return p.obj; });
+
+    dupl.length = 0;
+
+    tree = new kdTree(pts2, df, ['x', 'y']);
+
+    for (var i = 0; i < pts2.length; i++) {
+        pts2[i].i = i;
+    }
+
     function GetAng (a, b) {
         var ang = Math.atan2(a.x*b.y-b.x*a.y, a.x*b.x+a.y*b.y);
         if (ang < 0) {
@@ -91,20 +107,19 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
     var skip = [];
 
-    for (var i = 0; i < pts.length; i++) {
-        if (skip.indexOf(i) < 0 && dupl.indexOf(pts[i].obj) < 0) {
+    for (var i = 0; i < pts2.length; i++) {
+        if (skip.indexOf(i) < 0) {
 
-            var nearest = tree.nearest(pts[i], 5);
+            var nearest = tree.nearest(pts2[i], 5);
 
             var objs = nearest.filter(function (p) {
-                return dupl.indexOf(p[0].obj) < 0
-                    && p[0].obj != pts[i].obj
+                return p[0].obj != pts2[i].obj
                     && p[1] < 1e-5
-                    && pts[i].layId == p[0].layId;
+                    && pts2[i].layId == p[0].layId;
             });
 
             if (objs.length > 1) {
-                throw new Error('Ambiguous connection found at coordinate [' + pts[i].x + ', ' + pts[i].y + '].');
+                throw new Error('Ambiguous connection found at coordinate [' + pts2[i].x + ', ' + pts2[i].y + '].');
 
             } else if (objs.length == 1) {
 
@@ -113,9 +128,9 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
                 if (isLineEntity(obj)) {
                     if (objs[0][0].end == 0) {
-                        obj.setStartPoint(new RVector(pts[i].x, pts[i].y));
+                        obj.setStartPoint(new RVector(pts2[i].x, pts2[i].y));
                     } else {
-                        obj.setEndPoint(new RVector(pts[i].x, pts[i].y));
+                        obj.setEndPoint(new RVector(pts2[i].x, pts2[i].y));
                     }
 
                 } else {
@@ -135,7 +150,7 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
                         var pt = obj.getEndPoint();
                     }
 
-                    var v = new RVector(pt.x-pts[i].x, pt.y-pts[i].y),
+                    var v = new RVector(pt.x-pts2[i].x, pt.y-pts2[i].y),
                         l = v.getMagnitude()/2;
 
                     v.normalize();
@@ -144,9 +159,9 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
                     var f = (objs[0][0].end == 0 ^ obj.isReversed()) ? 1 : -1;
 
-                    var c = new RVector(pts[i].x+l*v.x-f*d*v.y, pts[i].y+l*v.y+f*d*v.x);
+                    var c = new RVector(pts2[i].x+l*v.x-f*d*v.y, pts2[i].y+l*v.y+f*d*v.x);
 
-                    var vA = new RVector(pts[i].x-c.x, pts[i].y-c.y),
+                    var vA = new RVector(pts2[i].x-c.x, pts2[i].y-c.y),
                         vB = new RVector(pt.x-c.x, pt.y-c.y);
 
                     var r = vA.getMagnitude();
@@ -193,7 +208,6 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
                 if (near[1] < 1e-5
                     && near[0].obj != sh.id
                     && near[0].obj != shs[0].id
-                    && dupl.indexOf(near[0].obj) < 0
                     && layId == near[0].layId) {
 
                     var ent = doc.queryEntity(near[0].obj),
@@ -220,7 +234,6 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
                 if (near[1] < 1e-5
                     && near[0].obj != sh.id
                     && near[0].obj != shs[shs.length-1].id
-                    && dupl.indexOf(near[0].obj) < 0
                     && layId == near[0].layId) {
 
                     var ent = doc.queryEntity(near[0].obj),
@@ -248,15 +261,14 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
     for (var i = 0; i < filtered.length; i++) {
         var id = filtered[i];
 
-        if (visited.indexOf(id) < 0
-            && dupl.indexOf(id) < 0) {
+        if (visited.indexOf(id) < 0) {
 
             var f = doc.queryEntity(id);
 
             var shapes = [{ 'id': id, 'shape': f.castToShape().clone() }];
 
-            while (Search(shapes, 'right', f.getLayerId())) {};
-            while (Search(shapes, 'left', f.getLayerId())) {};
+            while (Search(shapes, 'right', f.getLayerId())) {}
+            while (Search(shapes, 'left', f.getLayerId())) {}
 
             var ids = shapes.map(function (s) { return s.id; });
 
@@ -272,8 +284,6 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
         }
     }
-
-    Array.prototype.push.apply(visited, dupl);
 
     for (var i = 0; i < visited.length; i++) {
         op.deleteObject(doc.queryEntity(visited[i]));
