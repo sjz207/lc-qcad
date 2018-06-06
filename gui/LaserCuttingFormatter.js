@@ -83,7 +83,9 @@ LaserCuttingFormatter.prototype.beginEvent = function () {
         'packing-padding': this.widgets['PackingPadding'].value,
         'equal-sized-objects-dist': this.widgets['EqualSizedObjectsDist'].value,
         'gap-width': this.widgets['GapWidth'].value,
-        'gap-min-dist': this.widgets['GapMinDist'].value
+        'gap-min-dist': this.widgets['GapMinDist'].value,
+        'special-size-1': this.widgets['SpecialSize1'].value,
+        'special-size-2': this.widgets['SpecialSize2'].value
     };
 
     bundleFct(userCfg);

@@ -520,33 +520,42 @@ function AddSideGaps (pts, infos, sides, q) {
 
                 var diag = obb[1]*obb[1]+obb[2]*obb[2];
 
-                if (diag < 196) {
-                    AddGaps(pts, infos.filter(function (info) { return info.real; }).reduce(function (p, c) {
-                        return p.l < c.l ? p : c;
-                    }).ids, R, true);
+                if (cfg['special-size-1'] > 1e-5
+                    && obb[0] > Math.pow(cfg['special-size-1'], 2)) {
+
+                    AddSideGaps(pts, infos, 'ABCD', R);
 
                 } else {
 
-                    if (ratio < .8) {
-                        var sides = obb[2] > obb[1] ? pairs[0] : pairs[1];
-
-                        if (ratio > .2) {
-                            AddSideGaps(pts, infos, sides, R);
-                        } else {
-                            if (infos.some(function (info) { return info.side == sides[0] && info.ids.length > 2; })) {
-                                AddSideGaps(pts, infos, sides[0], R);
-
-                            } else if (infos.some(function (info) { return info.side == sides[1] && info.ids.length > 2; })) {
-                                AddSideGaps(pts, infos, sides[1], R);
-
-                            } else {
-                                // die langen seiten haben keine nasen
-                                AddSideGaps(pts, infos, pairs[(pairs.indexOf(sides)+1)%2], R);
-                            }
-                        }
+                    if (diag < Math.pow(cfg['special-size-2'], 2)) {
+                        AddGaps(pts, infos.filter(function (info) { return info.real; }).reduce(function (p, c) {
+                            return p.l < c.l ? p : c;
+                        }).ids, R, true);
 
                     } else {
-                        AddSideGaps(pts, infos, 'ABCD', R);
+
+                        if (ratio < .8) {
+                            var sides = obb[2] > obb[1] ? pairs[0] : pairs[1];
+
+                            if (ratio > .2) {
+                                AddSideGaps(pts, infos, sides, R);
+                            } else {
+                                if (infos.some(function (info) { return info.side == sides[0] && info.ids.length > 2; })) {
+                                    AddSideGaps(pts, infos, sides[0], R);
+
+                                } else if (infos.some(function (info) { return info.side == sides[1] && info.ids.length > 2; })) {
+                                    AddSideGaps(pts, infos, sides[1], R);
+
+                                } else {
+                                    // die langen seiten haben keine nasen
+                                    AddSideGaps(pts, infos, pairs[(pairs.indexOf(sides)+1)%2], R);
+                                }
+                            }
+
+                        } else {
+                            AddSideGaps(pts, infos, 'ABCD', R);
+                        }
+
                     }
 
                 }

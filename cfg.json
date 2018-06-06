@@ -7,5 +7,7 @@
     "packing-padding": 3,
     "equal-sized-objects-dist": 2,
     "gap-width": 0.5,
-    "gap-min-dist": 25
+    "gap-min-dist": 25,
+    "special-size-1": 0,
+    "special-size-2": 196
 }

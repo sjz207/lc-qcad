@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>365</width>
-    <height>325</height>
+    <height>385</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -208,10 +208,56 @@
        </property>
       </widget>
      </item>
-     <item row="9" column="0" colspan="2">
+     <item row="11" column="0" colspan="2">
       <widget class="QDialogButtonBox" name="buttonBox">
        <property name="standardButtons">
         <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="0">
+      <widget class="QLabel" name="label_10">
+       <property name="text">
+        <string>special-size-1</string>
+       </property>
+      </widget>
+     </item>
+     <item row="10" column="0">
+      <widget class="QLabel" name="label_11">
+       <property name="text">
+        <string>special-size-2</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="1">
+      <widget class="QDoubleSpinBox" name="SpecialSize1">
+       <property name="frame">
+        <bool>true</bool>
+       </property>
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::NoButtons</enum>
+       </property>
+       <property name="maximum">
+        <double>1000.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>25.000000000000000</double>
+       </property>
+      </widget>
+     </item>
+     <item row="10" column="1">
+      <widget class="QDoubleSpinBox" name="SpecialSize2">
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::NoButtons</enum>
+       </property>
+       <property name="maximum">
+        <double>50.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>5.000000000000000</double>
+       </property>
+       <property name="value">
+        <double>15.000000000000000</double>
        </property>
       </widget>
      </item>
@@ -232,6 +278,19 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>PaperSize</tabstop>
+  <tabstop>PaperPadding</tabstop>
+  <tabstop>EngravingLayerName</tabstop>
+  <tabstop>CuttingLayerName</tabstop>
+  <tabstop>CuttingWidth</tabstop>
+  <tabstop>PackingPadding</tabstop>
+  <tabstop>EqualSizedObjectsDist</tabstop>
+  <tabstop>GapWidth</tabstop>
+  <tabstop>GapMinDist</tabstop>
+  <tabstop>SpecialSize1</tabstop>
+  <tabstop>SpecialSize2</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>
