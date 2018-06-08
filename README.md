@@ -15,7 +15,7 @@ Primarily it should be used in model making.
 - contours and engravings don't need to be grouped in blocks - but they can be
 - offsets all contours by a given value (the half of the cutting width)
 - the parts will be aligned or packed on a paper
-- gaps will be added on the sides of the parts - by a special invented algorithm
+- gaps will be added on the sides of the parts - by a special algorithm
 - fully configurable via dialog
 
 ## Dependencies
@@ -67,12 +67,17 @@ Furthermore there are this values:
   - this value is used to control the appearance of the gaps
   - it is a single length that will be squared internally to an area
   - if the bounding box of a part is bigger than this area, the plugin will add gaps on all sides
-  - otherwise a special mechanism will try to find sides, so that not all sides are hold by gaps
+  - otherwise a special algorithm will try to find sides, so that not all sides are hold by gaps
   - for example it is not necessary to add gaps on all sides if a part is thin
-  - if it is set to 0 (this is the initial default) the special mechanism will be used by default
+  - if it is set to 0 (this is the initial default) the special algorithm will be used by default
 - **special-size-2**
   - this is the length of the squared diagonal that is used to decide if a part should have only one gap
   - if the diagonal of a bounding box is smaller than this value, the gap will be added to the shortest edge (that is part of the convex hull)
+
+## Notes
+
+- sometimes it is now possible to add gaps on all selected sides - that's why you have to control the result and add them manually where there are missing
+- the packing of parts is currently not optimal - if the paper-size is not big enough it can happen that some of the parts can not be packed
 
 ## License
 
@@ -81,4 +86,3 @@ Published under the MIT license.
 ## Copyright
 
 2018, Ronald Römer
-
