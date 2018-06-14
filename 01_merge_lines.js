@@ -22,7 +22,9 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         var obj = entities[i],
             ent = doc.queryEntity(obj);
 
-        if (isArcEntity(ent) || isLineEntity(ent)) {
+        if (ent.getLayerName() != cfg['engraving-layer-name']
+            && (isArcEntity(ent) || isLineEntity(ent))) {
+
             var sPt = ent.getStartPoint(),
                 ePt = ent.getEndPoint();
 

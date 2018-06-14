@@ -633,7 +633,7 @@ function AddSideGaps (pts, infos, sides, q) {
 
             } else {
 
-                var expl = ent.getExploded();
+                var expl = isPolylineEntity(ent) ? ent.getExploded() : [ent.castToShape()];
 
                 for (var j = 0; j < expl.length; j++) {
                     var newEnt = shapeToEntity(doc, expl[j].clone());

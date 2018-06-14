@@ -25,45 +25,43 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         var ent = doc.queryEntity(entities[i]);
 
         if (isBlockReferenceEntity(ent)) {
-            var itms = doc.queryBlockEntities(ent.getReferencedBlockId());
+            var itms = doc.queryBlockEntities(ent.getReferencedBlockId()),
+                itms2 = itms
+                    .map(function (itm) { return doc.queryEntity(itm); })
+                    .filter(function (itm) { return isPolylineEntity(itm) && itm.isClosed() && itm.getLayerName() != cfg['engraving-layer-name']; });
 
             var filtered = [];
 
             var op2 = new RModifyObjectsOperation(false);
 
-            for (var j = 0; j < itms.length; j++) {
-                var itmA = doc.queryEntity(itms[j]),
+            for (var j = 0; j < itms2.length; j++) {
+                var itmA = itms2[j],
                     shA = itmA.castToShape();
 
-                if (isPolylineEntity(itmA)
-                    && itmA.isClosed()
-                    && itmA.getLayerName() != cfg['engraving-layer-name']) {
+                var c = 0;
 
-                    var c = 0;
+                for (var k = 0; k < itms2.length; k++) {
+                    if (j != k) {
+                        var itmB = itms2[k],
+                            shB = itmB.castToShape();
 
-                    for (var k = 0; k < itms.length; k++) {
-                        if (j != k) {
-                            var itmB = doc.queryEntity(itms[k]),
-                                shB = itmB.castToShape();
+                        if (shB.containsShape(shA)) {
+                            c++;
 
-                            if (shB.containsShape(shA)) {
-                                c++;
-
-                                break;
-                            }
+                            break;
                         }
-
                     }
 
-                    if (c > 0 ^ shA.getOrientation() == RS.CW) {
-                        // richtung umkehren
-
-                        itmA.reverse();
-                        op2.addObject(itmA, false);
-                    }
-
-                    filtered.push(itmA);
                 }
+
+                if (c > 0 ^ shA.getOrientation() == RS.CW) {
+                    // richtung umkehren
+
+                    itmA.reverse();
+                    op2.addObject(itmA, false);
+                }
+
+                filtered.push(itmA);
 
             }
 
