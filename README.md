@@ -7,6 +7,7 @@ Primarily it should be used in model making.
 ## Features
 
 - automatically removes very small lines
+- detects and removes duplicates
 - allowed primitives are lines, polylines, arcs and ellipses
 - polylines are not urgently needed
 - removes not wanted primitives like hatches, dimensions, texts and all kind of constructive primitives (points, infinite lines, rays)
@@ -14,7 +15,7 @@ Primarily it should be used in model making.
 - the styles of the primitives will be unified
 - contours and engravings don't need to be grouped in blocks - but they can be
 - offsets all contours by a given value (the half of the cutting width)
-- the parts will be aligned or packed on a paper
+- the parts will be aligned/packed on a paper
 - gaps will be added on the sides of the parts - by a special algorithm
 - fully configurable via dialog
 
@@ -76,7 +77,7 @@ Furthermore there are this values:
 
 ## Notes
 
-- sometimes it is now possible to add gaps on all selected sides - that's why you have to control the result and add them manually where there are missing
+- sometimes it is not possible to add gaps on all selected sides - that's why you have to control the result and add them manually where there are missing
 - the packing of parts is currently not optimal - if the paper-size is not big enough it can happen that some of the parts can not be packed
 
 ## License
