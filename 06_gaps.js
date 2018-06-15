@@ -3,6 +3,8 @@ This source code is licensed under the MIT license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+include('/home/zippy/lc-qcad/tools.js');
+
 var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
 function GetCX (pts) {
@@ -437,17 +439,17 @@ function AddSideGaps (pts, infos, sides, q) {
 
     var layA = doc.queryLayer('Convex');
     if (isNull(layA)) {
-        layA = addLayer('Convex', 'Magenta');
+        layA = AddLayer('Convex', 'Magenta');
     }
 
     var layB = doc.queryLayer('OBB');
     if (isNull(layB)) {
-        layB = addLayer('OBB', 'Blue');
+        layB = AddLayer('OBB', 'Blue');
     }
 
     var layC = doc.queryLayer(cfg['cutting-layer-name']);
     if (isNull(layC)) {
-        layC = addLayer(cfg['cutting-layer-name'], 'Black');
+        layC = AddLayer(cfg['cutting-layer-name'], 'Black');
     }
 
     var layD = doc.queryLayer(cfg['engraving-layer-name']);

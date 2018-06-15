@@ -3,6 +3,8 @@ This source code is licensed under the MIT license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+include('/home/zippy/lc-qcad/tools.js');
+
 var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
 (function() {
@@ -13,7 +15,7 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
     var layA = doc.queryLayer('New');
     if (isNull(layA)) {
-        layA = addLayer('New', 'Cyan');
+        layA = AddLayer('New', 'Cyan');
     }
 
     function SetStyle (itm) {

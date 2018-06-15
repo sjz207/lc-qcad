@@ -3,6 +3,8 @@ This source code is licensed under the MIT license found in the
 LICENSE file in the root directory of this source tree.
 */
 
+include('/home/zippy/lc-qcad/tools.js');
+
 var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
 (function() {
@@ -14,7 +16,7 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
     var offsLay = doc.queryLayer('Offs');
 
     if (isNull(offsLay)) {
-        offsLay = addLayer('Offs', 'Green');
+        offsLay = AddLayer('Offs', 'Green');
     }
 
     var entities = doc.queryAllEntities();
@@ -25,24 +27,23 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         var ent = doc.queryEntity(entities[i]);
 
         if (isBlockReferenceEntity(ent)) {
-            var itms = doc.queryBlockEntities(ent.getReferencedBlockId()),
-                itms2 = itms
-                    .map(function (itm) { return doc.queryEntity(itm); })
-                    .filter(function (itm) { return isPolylineEntity(itm) && itm.isClosed() && itm.getLayerName() != cfg['engraving-layer-name']; });
+            var itms = doc.queryBlockEntities(ent.getReferencedBlockId())
+                .map(function (itm) { return doc.queryEntity(itm); })
+                .filter(function (itm) { return isPolylineEntity(itm) && itm.isClosed() && itm.getLayerName() != cfg['engraving-layer-name']; });
 
             var filtered = [];
 
             var op2 = new RModifyObjectsOperation(false);
 
-            for (var j = 0; j < itms2.length; j++) {
-                var itmA = itms2[j],
+            for (var j = 0; j < itms.length; j++) {
+                var itmA = itms[j],
                     shA = itmA.castToShape();
 
                 var c = 0;
 
-                for (var k = 0; k < itms2.length; k++) {
+                for (var k = 0; k < itms.length; k++) {
                     if (j != k) {
-                        var itmB = itms2[k],
+                        var itmB = itms[k],
                             shB = itmB.castToShape();
 
                         if (shB.containsShape(shA)) {
