@@ -218,7 +218,7 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         var ent = doc.queryEntity(lines[i]),
             sh = ent.castToShape();
 
-        if (sh.getLength() < .1) {
+        if (sh.getLength() < 1e-2) {
             op.deleteObject(ent);
         }
 

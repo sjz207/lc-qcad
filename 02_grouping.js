@@ -156,7 +156,7 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         var id = entities[i],
             ent = doc.queryEntity(id);
 
-        if (isPolylineEntity(ent)) {
+        if (isPolylineEntity(ent) || isArcEntity(ent) || isLineEntity(ent)) {
             if (ent.getLayerName() == cfg['engraving-layer-name']) {
                 others.push(id);
 
