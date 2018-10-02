@@ -4,6 +4,10 @@ This QCAD plugin prepares drawings for laser cutting and is designed for drawing
 
 Primarily it should be used in model making.
 
+## Donating
+
+If you like this project and you want to support it, you can donate with [PayPal](https://paypal.me/zippy84).
+
 ## Features
 
 - automatically removes very small lines
