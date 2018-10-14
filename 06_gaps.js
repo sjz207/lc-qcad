@@ -362,7 +362,7 @@ function AddSideGaps (pts, infos, sides, q) {
             } else {
                 var r = {};
 
-                var n = info.ids.length/2;
+                var n = info.ids.length/2>>0; // runden, falls ids mal ungerade sein sollte
 
                 for (var j = 0; j < n; j++) {
                     var e = info.ids[2*j],

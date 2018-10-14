@@ -161,7 +161,7 @@ var mids=[];for(var i=0;i<n;i++){var mid=pA.operator_add(v.operator_multiply((i+
 var all=[pA];for(var i=0;i<n;i++){all.push(mids[i].operator_add(v.operator_multiply(-cfg['gap-width']/2)));all.push(mids[i].operator_add(v.operator_multiply(cfg['gap-width']/2)));}
 all.push(pB);var lines=[];for(var i=0;i<n+1;i++){lines.push([all[2*i],all[2*i+1]]);}
 q[ids[0]]=lines;}}
-function AddSideGaps(pts,infos,sides,q){for(var i=0;i<infos.length;i++){var info=infos[i];if((info.real||info.ids.length>2)&&sides.indexOf(info.side)>-1){if(info.ids.length==2){AddGaps(pts,info.ids,q,true);}else{var r={};var n=info.ids.length/2;for(var j=0;j<n;j++){var e=info.ids[2*j],f=info.ids[2*j+1];AddGaps(pts,[e,f],r,false);}
+function AddSideGaps(pts,infos,sides,q){for(var i=0;i<infos.length;i++){var info=infos[i];if((info.real||info.ids.length>2)&&sides.indexOf(info.side)>-1){if(info.ids.length==2){AddGaps(pts,info.ids,q,true);}else{var r={};var n=info.ids.length/2>>0;for(var j=0;j<n;j++){var e=info.ids[2*j],f=info.ids[2*j+1];AddGaps(pts,[e,f],r,false);}
 var homog=Object.keys(r).map(function(k){r[k].length==2;});if(homog.indexOf(false)<0&&homog.length>2){var mids=[];var v=info.v.operator_multiply(cfg['gap-width']/2);for(var k in r){var w=r[k][0][1].operator_subtract(pts[info.ids[0]]).operator_add(v);mids.push({'k':k,'x':w.getMagnitude()});}
 var l=info.l;var n=Math.max(2,l/cfg['gap-min-dist']>>0);var h=l/n/2;var des=[];var i2,j2;for(i2=0;i2<n;i2++){des.push(h+2*i2*h);}
 for(i2=0;i2<n;i2++){var sn=[];for(j2=0;j2<mids.length;j2++){var d=Math.abs(mids[j2].x-des[i2]);if(d<h+1e-5){sn.push([d,j2]);}}
