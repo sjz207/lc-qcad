@@ -359,10 +359,11 @@ function AddSideGaps (pts, infos, sides, q) {
             if (info.ids.length == 2) {
                 AddGaps(pts, info.ids, q, true);
 
-            } else {
+            } else if (info.ids.length%2 == 0) {
+
                 var r = {};
 
-                var n = info.ids.length/2>>0; // runden, falls ids mal ungerade sein sollte
+                var n = info.ids.length/2;
 
                 for (var j = 0; j < n; j++) {
                     var e = info.ids[2*j],
@@ -422,6 +423,11 @@ function AddSideGaps (pts, infos, sides, q) {
                 for (var k in r) {
                     q[k] = r[k];
                 }
+            } else {
+                /* anzahl der ids ist ungerade
+                wenn allerdings zwei ids/punkte fehlen, dann ist die anzahl trotzdem gerade
+                -> führt zu einem fehler, den man aber sehen kann, wenn man sich das resultat ansieht
+                */
             }
         }
 
