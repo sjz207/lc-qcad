@@ -40,6 +40,7 @@ There are a few things that you should consider before using the plugin.
 - parts may not overlap
 - contours (inner and outer) and engravings must be clearly separated from each other
 - contours have to be closed
+- all layers must be visible and unlocked
 
 ## Usage
 
@@ -67,7 +68,6 @@ Furthermore there are this values:
   - if this requirement is not fulfilled, it can not be guaranteed that an engraving primitive is associated to the right part
 - **cutting-layer-name**
   - the name of the layer where the new primitives will be created
-  - if the layer already exists, a number will be appended to the name
 - **special-size-1**
   - this value is used to control the appearance of the gaps
   - it is a single length that will be squared internally to an area
@@ -78,6 +78,11 @@ Furthermore there are this values:
 - **special-size-2**
   - this is the length of the squared diagonal that is used to decide if a part should have only one gap
   - if the diagonal of a bounding box is smaller than this value, the gap will be added to the shortest edge (that is part of the convex hull)
+- **del-tmp-layers**
+  - if this option is checked, some not necessary layers will be deleted at the end
+- **add-markers**
+  - for control purpose, little circles will be created on top of the gaps
+  - the added gaps are now better visible in smaller zoom levels
 
 ## Notes
 

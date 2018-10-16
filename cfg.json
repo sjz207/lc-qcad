@@ -9,5 +9,7 @@
     "gap-width": 0.5,
     "gap-min-dist": 25,
     "special-size-1": 0,
-    "special-size-2": 196
+    "special-size-2": 196,
+    "del-tmp-layers": false,
+    "add-markers": true
 }

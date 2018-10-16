@@ -460,6 +460,11 @@ function AddSideGaps (pts, infos, sides, q) {
 
     var layD = doc.queryLayer(cfg['engraving-layer-name']);
 
+    var layE = doc.queryLayer('Markers');
+    if (isNull(layE)) {
+        layE = AddLayer('Markers', 'Lime');
+    }
+
     var op = new RAddObjectsOperation(false);
 
     var i;
@@ -536,9 +541,13 @@ function AddSideGaps (pts, infos, sides, q) {
                 } else {
 
                     if (diag < Math.pow(cfg['special-size-2'], 2)) {
-                        AddGaps(pts, infos.filter(function (info) { return info.real; }).reduce(function (p, c) {
-                            return p.l < c.l ? p : c;
-                        }).ids, R, true);
+                        try {
+                            AddGaps(pts, infos.filter(function (info) { return info.real && info.l > 2; }).reduce(function (p, c) {
+                                return p.l < c.l ? p : c;
+                            }).ids, R, true);
+                        } catch (e) {
+                            // TypeError von reduce
+                        }
 
                     } else {
 
@@ -570,7 +579,8 @@ function AddSideGaps (pts, infos, sides, q) {
 
                 var num = pts.length;
 
-                var newSegs = [];
+                var newSegs = [],
+                    markers = [];
 
                 if (Object.keys(R).length == 0) {
                     var dat = segs.map(function (s) {
@@ -604,6 +614,10 @@ function AddSideGaps (pts, infos, sides, q) {
                             var newArc = new RArc(center, r, angA, angB);
 
                             newSegs.push(newArc);
+
+                            var v = new RVector(r, 0);
+                            v.setAngle(j*ang);
+                            markers.push(center.operator_add(v));
                         }
                     }
 
@@ -615,6 +629,12 @@ function AddSideGaps (pts, infos, sides, q) {
                     for (var j = 0; j < num; j++) {
                         if (R.hasOwnProperty(j)) {
                             Array.prototype.push.apply(newSegs, R[j].map(function (r) { return new RLine(r[0], r[1]); }));
+
+                            R[j].slice(0, -1).forEach(function (r, idx) {
+                                var nxt = R[j][idx+1];
+                                markers.push(new RVector(r[1].x+.5*(nxt[0].x-r[1].x), r[1].y+.5*(nxt[0].y-r[1].y)));
+                            });
+
                         } else {
                             if (used.indexOf(pars[j]) < 0) {
                                 newSegs.push(segs[pars[j]].clone());
@@ -629,6 +649,16 @@ function AddSideGaps (pts, infos, sides, q) {
                     var newEnt = shapeToEntity(doc, newSegs[j]);
                     newEnt.setLayerId(layC.getId());
                     op.addObject(newEnt, false);
+                }
+
+                if (cfg['add-markers']) {
+                    for (var j = 0; j < markers.length; j++) {
+                        var circ = new RCircle(markers[j], 1),
+                            circEnt = shapeToEntity(doc, circ);
+
+                        circEnt.setLayerId(layE.getId());
+                        op.addObject(circEnt, false);
+                    }
                 }
 
                 // darstellung
