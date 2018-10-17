@@ -20,7 +20,7 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
             layers.push('Markers');
         }
 
-        var op = new RDeleteObjectsOperation(false);
+        var op = new RDeleteObjectsOperation();
 
         layers.forEach(function (name) {
             var lay = doc.queryLayer(name);
@@ -28,6 +28,8 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         });
 
         di.applyOperation(op);
+
+        di.flushTransactions();
     }
 
     qDebug((Date.now()-before)/1e3, 's');

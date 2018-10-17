@@ -18,7 +18,7 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
     // löst die blöcke auf
 
-    var op = new RModifyObjectsOperation(false);
+    var op = new RModifyObjectsOperation();
 
     for (var i = 0; i < blocks.length; i++) {
         var b = doc.queryEntity(blocks[i]);
@@ -46,6 +46,8 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
     }
 
     di.applyOperation(op);
+
+    di.flushTransactions();
 
     qDebug((Date.now()-before)/1e3, 's');
 
