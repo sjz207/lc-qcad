@@ -78,31 +78,49 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
                     var newPl = new RPolyline(expl);
                     newPl.convertToClosed();
 
-                    var worker = new RPolygonOffset(cfg['cutting-width']/2, 1, RVector.invalid, RS.JoinMiter, false);
-                    worker.setForceSide(RS.RightHand);
-                    worker.addPolyline(newPl);
+                    if (cfg['cutting-width'] > 0) {
 
-                    var offs = worker.getOffsetShapes();
+                        var worker = new RPolygonOffset(cfg['cutting-width']/2, 1, RVector.invalid, RS.JoinMiter, false);
+                        worker.setForceSide(RS.RightHand);
+                        worker.addPolyline(newPl);
 
-                    if (offs.length == 0) {
-                        expl.push(expl.shift());
+                        var offs = worker.getOffsetShapes();
 
-                    } else {
+                        if (offs.length == 0) {
+                            expl.push(expl.shift());
 
-                        for (var k = 0; k < offs.length; k++) {
-                            var off = shapeToEntity(doc, offs[k].data());
+                        } else {
 
-                            off.copyAttributesFrom(filtered[j].data());
-                            off.setLayerId(offsLay.getId());
+                            for (var k = 0; k < offs.length; k++) {
+                                var off = shapeToEntity(doc, offs[k].data());
 
-                            if (offs[k].getOrientation() == RS.CCW) {
-                                off.setCustomProperty('lc-qcad', 'outside', 1);
+                                off.copyAttributesFrom(filtered[j].data());
+                                off.setLayerId(offsLay.getId());
+
+                                if (offs[k].getOrientation() == RS.CCW) {
+                                    off.setCustomProperty('lc-qcad', 'outside', 1);
+                                }
+
+                                op.addObject(off, false);
                             }
 
-                            op.addObject(off, false);
+                            break;
                         }
 
+                    } else {
+                        var off = shapeToEntity(doc, newPl);
+
+                        off.copyAttributesFrom(filtered[j].data());
+                        off.setLayerId(offsLay.getId());
+
+                        if (newPl.getOrientation() == RS.CCW) {
+                            off.setCustomProperty('lc-qcad', 'outside', 1);
+                        }
+
+                        op.addObject(off, false);
+
                         break;
+
                     }
 
                 }
