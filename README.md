@@ -83,6 +83,15 @@ Furthermore there are this values:
 - **add-markers**
   - for control purpose, little circles will be created on top of the gaps
   - the added gaps are now better visible in smaller zoom levels
+- **add-side-cuttings**
+  - this is a very special option for brick-engravings
+  - it adds lines on the sides of parts where engravings ends on
+  - it works only for engravings that are perpendicular to sides
+  - for a better understanding, please take a look at *example2/*
+  - this option makes only sense, when the material height is nearly the same as the brick width (in the example it is about 1mm)
+  - at the end you have to remove not wanted lines
+  - the remaining lines should be moved to the cutting layer
+  - all added lines have a length of 1
 
 ## Notes
 

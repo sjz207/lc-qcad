@@ -366,11 +366,105 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
                     op2.addObject(inner, false);
                 }
+
             }
 
         }
     }
 
     di.applyOperation(op2);
+
+    if (cfg['add-side-cuttings']) {
+
+        var lay = AddLayer('SideCuttings', 'Yellow');
+
+        var op3 = new RAddObjectsOperation(false);
+
+        for (var s in sizes) {
+            var pars = sizes[s];
+
+            for (var i = 0; i < pars.length; i++) {
+                var par = pars[i],
+                    ent = doc.queryEntity(par);
+
+                if (childs.hasOwnProperty(par)) {
+
+                    var segs = ent.getExploded();
+
+                    for (var j = 0; j < childs[par].length; j++) {
+                        var itm = doc.queryEntity(childs[par][j]);
+                        if (itm.getLayerName() != cfg['engraving-layer-name']) {
+                            Array.prototype.push.apply(segs, itm.getExploded());
+                        }
+                    }
+
+                    for (var j = 0; j < childs[par].length; j++) {
+                        var itm = doc.queryEntity(childs[par][j]),
+                            sh = itm.castToShape();
+
+                        if (itm.getLayerName() == cfg['engraving-layer-name']
+                            && isLineEntity(itm)) {
+
+                            var pts = sh.getEndPoints();
+
+                            for (var k = 0; k < 2; k++) {
+                                var ptA = pts[k],
+                                    ptB = pts[(k+1)%2];
+
+                                for (var l = 0; l < segs.length; l++) {
+                                    var seg = segs[l];
+
+                                    if (seg.isOnShape(ptA)
+                                        && !seg.getStartPoint().equalsFuzzy(ptA)
+                                        && !seg.getEndPoint().equalsFuzzy(ptA)) {
+
+                                        var v = ptB.operator_subtract(ptA).normalize();
+
+                                        if (isArcShape(seg)) {
+                                            // getTangents() funktioniert hier nicht, weil die methode
+                                            // voraussetzt, dass pt nicht auf dem arc ist
+                                            // siehe https://github.com/qcad/qcad/blob/18a4766e4d124c9a3d951eaad6a505afe4f8ef0d/src/core/math/RCircle.cpp#L264
+
+                                            var c = seg.getCenter(),
+                                                w = ptA.operator_subtract(c).normalize(),
+                                                orth = new RVector(-w.y, w.x);
+
+                                            if (Math.abs(orth.dot(v)) > 1e-5) {
+                                                break;
+                                            }
+
+                                        } else /*if (isLineShape(seg))*/ {
+                                            var w = seg.getEndPoint().operator_subtract(seg.getStartPoint()).normalize();
+
+                                            if (Math.abs(w.dot(v)) > 1e-5) {
+                                                break;
+                                            }
+
+                                        }
+
+                                        var ptC = ptA.operator_subtract(v);
+
+                                        var line = new RLine(ptA, ptC),
+                                            lineEnt = shapeToEntity(doc, line);
+
+                                        lineEnt.setBlockId(blocks[s].getId());
+                                        lineEnt.setLayerId(lay.getId());
+
+                                        op3.addObject(lineEnt, false);
+
+                                        break;
+
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        di.applyOperation(op3);
+
+    }
 
 })();

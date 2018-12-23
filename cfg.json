@@ -10,6 +10,7 @@
     "gap-min-dist": 25,
     "special-size-1": 0,
     "special-size-2": 196,
-    "del-tmp-layers": false,
-    "add-markers": true
+    "del-tmp-layers": true,
+    "add-markers": true,
+    "add-side-cuttings": false
 }

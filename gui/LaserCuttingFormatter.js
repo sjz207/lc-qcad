@@ -88,6 +88,7 @@ LaserCuttingFormatter.prototype.beginEvent = function () {
         'special-size-2': this.widgets['SpecialSize2'].value,
         'del-tmp-layers': this.widgets['DelTmpLayers'].checked,
         'add-markers': this.widgets['AddMarkers'].checked,
+        'add-side-cuttings': this.widgets['AddSideCuttings'].checked
     };
 
     bundleFct(userCfg);
