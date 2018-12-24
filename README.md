@@ -4,10 +4,6 @@ This QCAD plugin prepares drawings for laser cutting and is designed for drawing
 
 Primarily it should be used in model making.
 
-## Donating
-
-If you like this project and you want to support it, you can donate with [PayPal](https://paypal.me/zippy84).
-
 ## Features
 
 - automatically removes very small lines
@@ -31,7 +27,7 @@ Nothing but [QCAD](https://www.qcad.org/en/) >= 3.20.
 
 Download the whole project with the download-button in the upper right or by cloning it using Git.
 
-Take the zip-file in the dist directory and unpack it in *scripts/Misc/Modify* of your QCAD installation. If *Misc/Modify* does not exist, create them!
+Take the zip-file in the dist directory and unpack it in *scripts/Misc/Modify* of your QCAD installation. If neither *Misc* nor *Modify* exists, create them!
 
 ## Conditions
 
@@ -97,6 +93,10 @@ Furthermore there are this values:
 
 - sometimes it is not possible to add gaps on all selected sides - that's why you have to control the result and add them manually where there are missing
 - the packing of parts is currently not optimal - if the paper-size is not big enough it can happen that some of the parts can not be packed
+
+## Donating
+
+If you like this project and you want to support it, you can donate with [PayPal](https://paypal.me/zippy84).
 
 ## License
 
