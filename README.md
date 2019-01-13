@@ -92,7 +92,6 @@ Furthermore there are this values:
 ## Notes
 
 - sometimes it is not possible to add gaps on all selected sides - that's why you have to control the result and add them manually where there are missing
-- the packing of parts is currently not optimal - if the paper-size is not big enough it can happen that some of the parts can not be packed
 
 ## Donating
 

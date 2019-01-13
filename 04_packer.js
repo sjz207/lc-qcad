@@ -13,13 +13,6 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
     var doc = getDocument();
     var di = getDocumentInterface();
 
-    function Node (pos, h, w) {
-        this.obj = null;
-        this.pos = pos;
-        this.h = h;
-        this.w = w;
-    }
-
     // cleanup
     var bb = doc.queryBlock('BB');
     if (!isNull(bb)) {
@@ -28,18 +21,18 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         di.applyOperation(_op);
     }
 
-    var op = new RModifyObjectsOperation(false);
     var entities = doc.queryAllEntities();
 
-    var objs = [];
-    var len = entities.length;
-    for (var i = 0; i < len; i++) {
-        var entity = doc.queryEntity(entities[i]);
-        var bb = entity.getBoundingBox();
-        var h = bb.getHeight();
-        var w = bb.getWidth();
+    var objs = [],
+        num = entities.length;
 
-        objs.push({ 'h': h, 'w': w, 'area': h*w, 'pos': bb.getCorner1(), 'entity': entity });
+    for (var i = 0; i < num; i++) {
+        var entity = doc.queryEntity(entities[i]),
+            bb = entity.getBoundingBox(),
+            h = bb.getHeight(),
+            w = bb.getWidth();
+
+        objs.push({ h: h, w: w, area: h*w, entity: entity, pos: bb.getCorner1() });
     }
 
     // die großen zuerst
@@ -53,61 +46,83 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
         }
     });
 
-    var nodes = [new Node([0, 0], cfg['paper-size'][0]-2*cfg['paper-padding'], cfg['paper-size'][1]-2*cfg['paper-padding'])];
+    function Node (x, y, h, w) {
+        this.empty = true;
+        this.x = x;
+        this.y = y;
+        this.h = h;
+        this.w = w;
+    }
 
-    for (var i = 0; i < len; i++) {
-        var obj = objs[i];
+    function Pack (off) {
 
-        for (var j = 0; j < nodes.length; j++) {
-            var node = nodes[j];
+        var h = cfg['paper-size'][0]-2*cfg['paper-padding'],
+            w = cfg['paper-size'][1]-2*cfg['paper-padding'];
 
-            if (node.obj !== null) {
+        var nodes = [new Node(off, 0, h, w)];
+
+        for (var i = 0; i < num; i++) {
+            var obj = objs[i];
+
+            if (obj.hasOwnProperty('node')) {
                 continue;
             }
 
-            var oh = obj.h+2*cfg['packing-padding'],
-                ow = obj.w+2*cfg['packing-padding'];
+            for (var j = 0; j < nodes.length; j++) {
+                var node = nodes[j];
 
-            // passt das obj in den node?
-            if (ow <= node.w
-                && oh <= node.h) {
-
-                node.obj = obj;
-
-                var dw = node.w-ow,
-                    dh = node.h-oh;
-
-                if (dw > dh) {
-                    nodes.push(new Node([node.pos[0], node.pos[1]+oh],
-                        node.h-oh, ow)); // A
-                    nodes.push(new Node([node.pos[0]+ow, node.pos[1]],
-                        node.h, node.w-ow)); // B
-                } else {
-                    nodes.push(new Node([node.pos[0]+ow, node.pos[1]],
-                        oh, node.w-ow)); // A
-                    nodes.push(new Node([node.pos[0], node.pos[1]+oh],
-                        node.h-oh, node.w)); // B
+                if (!node.empty) {
+                    continue;
                 }
 
-                nodes.sort(function (a, b) {
-                    if (Math.abs(a.pos[0]-b.pos[0]) < 1e-5) {
-                        if (a.pos[1] < b.pos[1]) { return -1; }
-                        else { return 1; }
+                var oh = obj.h+2*cfg['packing-padding'],
+                    ow = obj.w+2*cfg['packing-padding'];
+
+                // passt das obj in den node?
+                if (ow <= node.w
+                    && oh <= node.h) {
+
+                    node.empty = false;
+
+                    var dw = node.w-ow,
+                        dh = node.h-oh;
+
+                    if (dw > dh) {
+                        nodes.push(new Node(node.x, node.y+oh,
+                            node.h-oh, ow)); // A
+                        nodes.push(new Node(node.x+ow, node.y,
+                            node.h, node.w-ow)); // B
                     } else {
-                        if (a.pos[0] < b.pos[0]) { return -1; }
-                        else { return 1; }
+                        nodes.push(new Node(node.x+ow, node.y,
+                            oh, node.w-ow)); // A
+                        nodes.push(new Node(node.x, node.y+oh,
+                            node.h-oh, node.w)); // B
                     }
-                });
 
-                // verschieben
-                var v = new RVector(node.pos[0]-obj.pos.getX()+cfg['packing-padding'], node.pos[1]-obj.pos.getY()+cfg['packing-padding']);
-                obj.entity.move(v);
-                op.addObject(obj.entity, false);
+                    nodes.sort(function (a, b) {
+                        if (Math.abs(a.x-b.x) < 1e-5) {
+                            if (a.y < b.y) { return -1; }
+                            else { return 1; }
+                        } else {
+                            if (a.x < b.x) { return -1; }
+                            else { return 1; }
+                        }
+                    });
 
-                break;
+                    obj.node = node;
+
+                    break;
+                }
             }
         }
+
+        return objs.some(function (obj) { return !obj.hasOwnProperty('node'); });
+
     }
+
+    for (var i = 0; Pack(i*cfg['paper-size'][1]); i++) {}
+
+    var op = new RAddObjectsOperation(false);
 
     var block = new RBlock(doc, 'BB', new RVector(0, 0));
 
@@ -115,24 +130,40 @@ var cfg = JSON.parse(readTextFile('/home/zippy/lc-qcad/cfg.json'));
 
     di.applyOperation(op);
 
+    var op2 = new RModifyObjectsOperation(false);
+
     doc.setCurrentLayer(doc.getLayer0Id());
 
-    var op2 = new RAddObjectsOperation(false);
+    for (var i = 0; i < num; i++) {
+        var obj = objs[i],
+            node = obj.node;
 
-    for (var i = 0; i < nodes.length; i++) {
-        var node = nodes[i];
-        var a = new RVector(node.pos[0], node.pos[1]),
-            b = new RVector(node.pos[0]+node.w, node.pos[1]+node.h);
-        var box = new RBox(a, b);
-        var _box = new RPolylineEntity(doc, new RPolylineData());
-        _box.setShape(box.getPolyline2d());
-        _box.setBlockId(block.getId());
-        op2.addObject(_box, false);
+        var x = node.x+cfg['paper-padding'],
+            y = node.y+cfg['paper-padding'];
+
+        var a = new RVector(x, y),
+            b = new RVector(x+node.w, y+node.h);
+
+        var box = new RBox(a, b),
+            boxEnt = new RPolylineEntity(doc, new RPolylineData());
+        boxEnt.setShape(box.getPolyline2d());
+
+        boxEnt.setBlockId(block.getId());
+
+        op2.addObject(boxEnt, false);
+
+        var v = new RVector(x-obj.pos.x+cfg['packing-padding'],
+            y-obj.pos.y+cfg['packing-padding']);
+
+        obj.entity.move(v);
+
+        op2.addObject(obj.entity, false);
+
     }
 
-    var br = new RBlockReferenceEntity(doc, new RBlockReferenceData(block.getId(), new RVector(0, 0), new RVector(1, 1), 0));
-    br.setBlockId(doc.getModelSpaceBlockId());
-    op2.addObject(br, false);
+    var ref = new RBlockReferenceEntity(doc, new RBlockReferenceData(block.getId(), new RVector(0, 0), new RVector(1, 1), 0));
+    ref.setBlockId(doc.getModelSpaceBlockId());
+    op2.addObject(ref, false);
 
     di.applyOperation(op2);
 

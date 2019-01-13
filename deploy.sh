@@ -18,7 +18,7 @@ zip -rq - LaserCuttingFormatter > $cwd/dist/lcf-plugin.zip
 
 cd $cwd
 
-v=3.20.1
+v=3.21.3
 
 if [ -d "/home/zippy/opt/qcad-${v}-pro-linux-x86_64" ]
 then
